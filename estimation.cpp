@@ -74,9 +74,9 @@ const unsigned int TC_SIZE      = 3;                // travel cost
 const unsigned int STATE_SIZE   = 3;                // # of states: w,b,ue
 #ifdef SIMULATION
 const unsigned int BASE_DRAWS_F = 1000;
-const unsigned int TYPE_0_OF_1000 = BASE_DRAWS_F*0.333;//0.0847;
-const unsigned int TYPE_1_OF_1000 = BASE_DRAWS_F*0.334;//0.6056;
-const unsigned int TYPE_2_OF_1000 = BASE_DRAWS_F*0.333;//0.3096;
+const unsigned int TYPE_0_OF_1000 = BASE_DRAWS_F*0.0847;
+const unsigned int TYPE_1_OF_1000 = BASE_DRAWS_F*0.6056;
+const unsigned int TYPE_2_OF_1000 = BASE_DRAWS_F*0.3096;
 const unsigned int DRAWS_F		= TYPE_1_OF_1000; 	// max of: T0 = 85, T1 = 605, T2 = 310
 #else
 const unsigned int DRAWS_F      = 100;              // draws for forward solving
