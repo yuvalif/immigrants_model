@@ -74,12 +74,16 @@ const unsigned int TC_SIZE      = 3;                // travel cost
 const unsigned int STATE_SIZE   = 3;                // # of states: w,b,ue
 #ifdef SIMULATION
 const unsigned int BASE_DRAWS_F = 1000;
-const unsigned int TYPE_0_OF_1000 = BASE_DRAWS_F*0.333;//0.0847;
-const unsigned int TYPE_1_OF_1000 = BASE_DRAWS_F*0.334;//0.6056;
-const unsigned int TYPE_2_OF_1000 = BASE_DRAWS_F*0.333;//0.3096;
+const unsigned int TYPE_0_OF_1000 = BASE_DRAWS_F*0.085;
+const unsigned int TYPE_1_OF_1000 = BASE_DRAWS_F*0.605;
+const unsigned int TYPE_2_OF_1000 = BASE_DRAWS_F*0.310;
 const unsigned int DRAWS_F		= TYPE_1_OF_1000; 	// max of: T0 = 85, T1 = 605, T2 = 310
 #else
+#ifdef WAGE_SELECTION
+const unsigned int DRAWS_F      = 333;              // draws for forward solving
+#else
 const unsigned int DRAWS_F      = 100;              // draws for forward solving
+#endif // WAGE_SELECTION
 #endif // SIMULATION
 const unsigned int D_WAGE       = 6;                //
 const unsigned int TAU          = 50000;
@@ -225,6 +229,111 @@ static bool load_individuals(const char* filename)
         return false;
     }
 }
+
+#ifdef SIMULATION
+unsigned short IND_FILTER_arr[OBS];  // filter out individuals for summary
+
+static bool load_individuals_filter(const char* filename)
+{
+    const int COLUMN_NUMBER = 1;
+
+    FILE* fp = fopen(filename,"r");
+    if (fp)
+    {
+        char line[LINE_MAX];
+        unsigned short I = 0;
+        int col_num = 0;
+#ifdef TRACE_LOAD
+		printf("Loading %s\n", filename);
+		printf("============================================================\n");
+#endif
+        while (I < OBS)
+        {
+            if (fgets(line, LINE_MAX, fp) != 0)
+            {
+                // formatting the line according to:
+                col_num = sscanf(line, "%hu", &(IND_FILTER_arr[I]));
+                if (col_num != COLUMN_NUMBER)
+                {
+                    printf("wrong format in file %s number of columns: %d \n", filename, col_num);
+                    printf("line[%hu]: %s\n", I, line);
+                    fclose(fp);
+                    return false;
+                } 
+                else
+                {
+					if (IND_FILTER_arr[I] != 0 && IND_FILTER_arr[I] != 1)
+					{
+						printf("line[%hu]: expected values for filter are 0/1 only (%hu)\n", I, IND_FILTER_arr[I]);
+						fclose(fp);
+                    	return false;
+					}
+#ifdef TRACE_LOAD
+                    printf("line[%hu]: %hu\n", I, IND_FILTER_arr[I]);
+#endif
+                    ++I;
+                }
+            } 
+            else
+            {
+                printf("erorr [%s] reading file [%s] at line [%hu]\n", strerror(errno), filename, I);
+                fclose(fp);
+                return false;
+            }
+        }
+        fclose(fp);
+        return true;
+    } 
+    else
+    {
+        printf("failed to open individual filter file %s\n", filename);
+        return false;
+    }
+}
+
+float FR[RG_SIZE];
+
+static bool load_future_intrest(const char* filename)
+{
+	const int COLUMN_NUMBER = 7;
+    FILE* fp = fopen(filename, "r");
+    if (fp)
+    {
+        char line[LINE_MAX];
+        int col_num = 0;
+#ifdef TRACE_LOAD
+		printf("Loading %s\n", filename);
+		printf("============================================================\n");
+#endif
+        if (fgets(line, LINE_MAX, fp) != 0)
+        {
+            col_num = sscanf(line, "%f%f%f%f%f%f%f", &FR[0], &FR[1], &FR[2], &FR[3], &FR[4], &FR[5], &FR[6]);
+            if (col_num != COLUMN_NUMBER)
+            {
+                printf("wrong format in file %s number of columns: %d \n", filename, col_num);
+                printf("line: %s\n", line);
+                fclose(fp);
+                return false;
+            }
+            else
+            {
+#ifdef TRACE_LOAD
+                    printf("line: %s", line);
+#endif
+            }
+        }
+        fclose(fp);
+        return true;
+    }
+    else
+    {
+
+        printf("failed to open future intrest file %s\n", filename);
+        return false;
+    }
+}
+
+#endif // SIMULATION
 
 // loading from file to global variables
 static bool load_wife_edu(const char* filename)
@@ -540,48 +649,6 @@ static bool load_const_params(const char* filename, float* x)
     }
 }
 
-float FR[RG_SIZE];
-
-static bool load_future_intrest(const char* filename)
-{
-	const int COLUMN_NUMBER = 7;
-    FILE* fp = fopen(filename, "r");
-    if (fp)
-    {
-        char line[LINE_MAX];
-        int col_num = 0;
-#ifdef TRACE_LOAD
-		printf("Loading %s\n", filename);
-		printf("============================================================\n");
-#endif
-        if (fgets(line, LINE_MAX, fp) != 0)
-        {
-            col_num = sscanf(line, "%f%f%f%f%f%f%f", &FR[0], &FR[1], &FR[2], &FR[3], &FR[4], &FR[5], &FR[6]);
-            if (col_num != COLUMN_NUMBER)
-            {
-                printf("wrong format in file %s number of columns: %d \n", filename, col_num);
-                printf("line: %s\n", line);
-                fclose(fp);
-                return false;
-            }
-            else
-            {
-#ifdef TRACE_LOAD
-                    printf("line: %s", line);
-#endif
-            }
-        }
-        fclose(fp);
-        return true;
-    }
-    else
-    {
-
-        printf("failed to open future intrest file %s\n", filename);
-        return false;
-    }
-}
-
 // EMAX matrix
 // Note: the loop of T goes from 1 to T, C++ arrays are 0 to T-1, so the size must be T+1 
 #ifndef WAGE_SLECTION
@@ -596,6 +663,7 @@ static const unsigned int RENT_SIM = 1;
 static const unsigned int WAGE_SIM = 2;
 static const unsigned int TC_SIM = 3;
 static const unsigned int FR_SIM = 5;
+static const unsigned int MARRIED_SIM = 6;
 #endif
 
 // estimation function used inside the optimization process to find the params the find minimum likelihood
@@ -975,18 +1043,24 @@ static double estimation(float* params)
 		const unsigned char		SCHOOL1 = (SCHOOL_arr[I] < 16) ? 1 : 0;
 		const unsigned char		SCHOOL2 = (SCHOOL_arr[I] == 17) ? 1 : 0;
 		const unsigned char		SCHOOL3 = (SCHOOL_arr[i] > 17 || SCHOOL_arr[i] == 16) ? 1 : 0;
+#ifndef SIMULATION
         const float 			WAGE = WAGE_arr[I];
+#endif
         const unsigned short 	AGE = AGE_arr[I];
         unsigned short 	PERIODS = PERIODS_arr[I];
+#ifndef SIMULATION
         const unsigned long		RENT_MORT = RENT_MORT_arr[I];
         const unsigned short	D_MORT = D_MORT_arr[I];
+#endif
         const unsigned short	REP1 = REP1_arr[I];
         const unsigned short	REP2 = REP2_arr[I];
         const unsigned short	REP3 = REP3_arr[I];
         const unsigned short	TYPE2 = TYPE2_arr[I];
         const unsigned short	TYPE3 = TYPE3_arr[I];
 		const unsigned short 	WIFE_EDU = WIFE_EDU_arr[I];
-
+#ifdef SIMULATION
+		const unsigned short	IND_FILTER =  (sim_type == MARRIED_SIM) ? IND_FILTER_arr[I] : 1;
+#endif
 		const float rent_for_all_regions = gama1*M+gama2*KIDS+gama3*TYPE2+gama4*TYPE3; //global rent without gama0 by region
 
 #ifndef WAGE_SELECTION
@@ -997,6 +1071,7 @@ static double estimation(float* params)
 		float const_taste[RG_SIZE];
 		float rent[RG_SIZE];
 		float wife[RG_SIZE];
+        float original_rent[RG_SIZE];
 		for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
         {
             const_taste[rg] = teta0[rg]+teta1[rg]*REP1+teta2[rg]*REP2+teta3[rg]*REP3; //taste for housing in a specific region - equation 5 page 13
@@ -1012,6 +1087,7 @@ static double estimation(float* params)
 				}
 			}
 #endif
+            original_rent[rg] = rent[rg];
         }
 #ifndef WAGE_SELECTION
 		//probability of not losing your job in white collar - equation 5 page 12
@@ -1420,19 +1496,25 @@ static double estimation(float* params)
 #endif
 
         float p_bar_arr[STATE_VECTOR_SIZE][T];
-        short job_arr[T][DRAWS_F];
         short work_rg_arr[T][DRAWS_F];
         short house_rg_arr[T][DRAWS_F];
+#ifndef SIMULATION
+        short job_arr[T][DRAWS_F];
         unsigned short max_index_arr[T][DRAWS_F];
+#endif
         float last_wage[DRAWS_F];
         float last_rent[DRAWS_F];
         memset(p_bar_arr, '\0', sizeof(p_bar_arr));
 		unsigned short I_id;
+#ifdef TRACE
         unsigned short I_type;
+#endif
         {
         	div_t I_info = div(I,OBSR);
             I_id = (unsigned short)I_info.rem;
+#ifdef TRACE
             I_type = (unsigned short)I_info.quot;
+#endif
         }
 
 #ifdef SIMULATION
@@ -1470,6 +1552,24 @@ static double estimation(float* params)
 				PERIODS = T;
 			}
 #endif
+
+            // winding the rent back, so it would reach the original value in PERIODS
+            for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
+            {
+                rent[rg] = original_rent[rg];
+            }
+#ifdef SIMULATION
+            for (unsigned short t = 0; t < PERIODS_arr[I] - 1; ++t)
+#else
+            for (unsigned short t = 0; t < PERIODS - 1; ++t)
+#endif
+            {
+                    for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
+                    {
+                        rent[rg] = rent[rg]/(1.0f + R[rg]);
+                    }
+            }
+
             for (unsigned short t = 0; t < PERIODS; ++t)// loop over periods
             {
 				short max_index = -1;
@@ -1505,6 +1605,9 @@ static double estimation(float* params)
 
                 for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                 {
+                    // adjust rent with R
+                    rent[rg] = rent[rg]*(1.0f + R[rg]);
+
                     float prob_work_2w;
                     float prob_ue_2w;
                     float prob_work_2b;
@@ -1599,7 +1702,9 @@ static double estimation(float* params)
 				float choices[STATE_VECTOR_SIZE];
 				if (from_state == UE)
                 {
-                    //if (t > 0)
+#ifndef WAGE_SELECTION
+                    if (t > 0)
+#endif
                     {
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                         {
@@ -1635,9 +1740,10 @@ static double estimation(float* params)
                             get_max_idx(max_utility, max_index, ue_2w[from_h_rg][w_rg], from_h_rg+14+7*w_rg);
                         }
 
-                    } 
-					//else //t==0
-                    /*{
+                    }
+#ifndef WAGE_SELECTION					
+					else //t==0
+                    {
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                         {
                             choices[rg] = choose_ue[rg] - moving_cost;
@@ -1655,7 +1761,7 @@ static double estimation(float* params)
                             } // close w_rg
                         }  // close rg
                     }  // close if t>0
-*/
+#endif // WAGE_SELECTION
                 } // close state==UE
                 else
                 {
@@ -1916,7 +2022,9 @@ static double estimation(float* params)
                 if (tmp_work_rg == 0)
                 {
                     // unemployment
+#ifndef SIMULATION
                     job_arr[t][draw] = UE;
+#endif
 					from_state = UE;
                     dwage_b = 0;
                     dwage_w = 0;
@@ -1924,7 +2032,9 @@ static double estimation(float* params)
 				else if (tmp_work_rg == 1)
                 {
                     // work in blue
+#ifndef SIMULATION
                     job_arr[t][draw] = BLUE;
+#endif
 					from_state = BLUE;
 					// increase experience
                     ++k;
@@ -1938,7 +2048,9 @@ static double estimation(float* params)
                 {
                     // work in white
                     tmp_work_rg -= 2; // now it is a number: 0-6
+#ifndef SIMULATION
                     job_arr[t][draw] = WHITE;
+#endif
 					from_state = WHITE;
 					// increase experience
                     ++k;
@@ -1947,30 +2059,40 @@ static double estimation(float* params)
                     dwage_b = 0;
                     dwage_w = D_W_W[tmp_work_rg];
 #ifdef TRACE
-                    ++work_rg_distribution[I_type][from_w_rg][t];
-                    ++work_rg_distribution_count[I_type][t];
-					++work_rg_notype_distribution[from_w_rg][t];
-                    ++work_rg_notype_distribution_count[t];
+#ifdef SIMULATION
+					if (IND_FILTER==1)
+#endif
+					{
+                    	++work_rg_distribution[I_type][from_w_rg][t];
+                    	++work_rg_distribution_count[I_type][t];
+						++work_rg_notype_distribution[from_w_rg][t];
+                    	++work_rg_notype_distribution_count[t];
 					
-					++house_work_rg_distribution_count[I_type][from_h_rg];
-					++house_work_rg_distribution[I_type][from_h_rg][from_w_rg];
-					++house_work_rg_notype_distribution_count[from_h_rg];
-					++house_work_rg_notype_distribution[from_h_rg][from_w_rg];
+						++house_work_rg_distribution_count[I_type][from_h_rg];
+						++house_work_rg_distribution[I_type][from_h_rg][from_w_rg];
+						++house_work_rg_notype_distribution_count[from_h_rg];
+						++house_work_rg_notype_distribution[from_h_rg][from_w_rg];
+					}
 #endif
                 }
-
+#ifndef SIMULATION
                 max_index_arr[t][draw] = max_index;
-
+#endif
 #ifdef TRACE
-                ++house_distribution[I_type][from_h_rg][t];
-                ++house_distribution_count[I_type][t];
-				++house_notype_distribution[from_h_rg][t];
-                ++house_notype_distribution_count[t];
+#ifdef SIMULATION
+                if (IND_FILTER==1)
+#endif
+				{
+                	++house_distribution[I_type][from_h_rg][t];
+                	++house_distribution_count[I_type][t];
+					++house_notype_distribution[from_h_rg][t];
+                	++house_notype_distribution_count[t];
 				
-                ++occ_distribution[I_type][from_state][t];
-                ++occ_distribution_count[I_type][t];
-				++occ_notype_distribution[from_state][t];
-                ++occ_notype_distribution_count[t];
+                	++occ_distribution[I_type][from_state][t];
+                	++occ_distribution_count[I_type][t];
+					++occ_notype_distribution[from_state][t];
+                	++occ_notype_distribution_count[t];
+				}
 #endif
                 // calculate last rent and wage
 				if (t == PERIODS-1)
@@ -1981,14 +2103,19 @@ static double estimation(float* params)
                     {
                         last_rent[draw] = rent[from_h_rg]/6.0f;
 #ifdef TRACE
-                        rent_rg_sum[I_type][from_h_rg] += last_rent[draw];
-                        ++rent_rg_count[I_type][from_h_rg];
-						rent_rg_notype_sum[from_h_rg] += last_rent[draw];
-                        ++rent_rg_notype_count[from_h_rg];
-                        rent_sum[I_type] += last_rent[draw];
-                        ++rent_count[I_type];
-                        rent_notype_sum += last_rent[draw];
-                        ++rent_notype_count;
+#ifdef SIMULATION
+                    	if (IND_FILTER==1)
+#endif
+						{
+                        	rent_rg_sum[I_type][from_h_rg] += last_rent[draw];
+                        	++rent_rg_count[I_type][from_h_rg];
+							rent_rg_notype_sum[from_h_rg] += last_rent[draw];
+                        	++rent_rg_notype_count[from_h_rg];
+                        	rent_sum[I_type] += last_rent[draw];
+                        	++rent_count[I_type];
+                        	rent_notype_sum += last_rent[draw];
+                        	++rent_notype_count;
+						}
 #endif
                     }
 #ifndef SIMULATION
@@ -2004,28 +2131,38 @@ static double estimation(float* params)
                         {
                             last_wage[draw] = ((w_wage_flag == false) ? wage_w[work_rg_arr[PERIODS-1][draw]] : wage_w_non_f[work_rg_arr[PERIODS-1][draw]])/6.0f;
 #ifdef TRACE
-                            wage_white_rg_sum[I_type][from_w_rg] += last_wage[draw];
-                            ++wage_white_rg_count[I_type][from_w_rg];
-                            wage_white_sum[I_type] += last_wage[draw];
-                            ++wage_white_count[I_type];
-							wage_white_notype_rg_sum[from_w_rg] += last_wage[draw];
-							++wage_white_notype_rg_count[from_w_rg];
-							wage_white_notype_sum += last_wage[draw];
-							++wage_white_notype_count;
+#ifdef SIMULATION
+							if (IND_FILTER==1)
+#endif
+							{
+                            	wage_white_rg_sum[I_type][from_w_rg] += last_wage[draw];
+                            	++wage_white_rg_count[I_type][from_w_rg];
+                            	wage_white_sum[I_type] += last_wage[draw];
+                            	++wage_white_count[I_type];
+								wage_white_notype_rg_sum[from_w_rg] += last_wage[draw];
+								++wage_white_notype_rg_count[from_w_rg];
+								wage_white_notype_sum += last_wage[draw];
+								++wage_white_notype_count;
+							}
 #endif
                         }
                         else if (from_state == BLUE)
                         {
                             last_wage[draw] = ((b_wage_flag == false) ? wage_b[house_rg_arr[PERIODS-1][draw]] : wage_b_non_f[house_rg_arr[PERIODS-1][draw]])/6.0f;
 #ifdef TRACE
-                            wage_blue_rg_sum[I_type][from_h_rg] += last_wage[draw];
-                            ++wage_blue_rg_count[I_type][from_h_rg];
-							wage_blue_rg_notype_sum[from_h_rg] += last_wage[draw];
-                            ++wage_blue_rg_notype_count[from_h_rg];
-                            wage_blue_sum[I_type] += last_wage[draw];
-                            ++wage_blue_count[I_type];
-							wage_blue_notype_sum += last_wage[draw];
-                            ++wage_blue_notype_count;
+#ifdef SIMULATION
+							if (IND_FILTER==1)
+#endif
+							{
+                            	wage_blue_rg_sum[I_type][from_h_rg] += last_wage[draw];
+                            	++wage_blue_rg_count[I_type][from_h_rg];
+								wage_blue_rg_notype_sum[from_h_rg] += last_wage[draw];
+                            	++wage_blue_rg_notype_count[from_h_rg];
+                            	wage_blue_sum[I_type] += last_wage[draw];
+                            	++wage_blue_count[I_type];
+								wage_blue_notype_sum += last_wage[draw];
+                            	++wage_blue_notype_count;
+							}
 #endif
                         }
                         else
@@ -2407,10 +2544,6 @@ static double estimation(float* params)
 #endif
 
 #ifdef TRACE
-	const float prob_tt[TYPE_SIZE] = {PROB_T0, PROB_T1, PROB_T2};
-	//float weighted_average = 0.0f;	
-    //float p_type_given_occ[TYPE_SIZE][STATE_SIZE][T];
-    
     printf("\ntype 0 probability = %f\t", PROB_T0);
     printf("type 1 probability = %f\t", PROB_T1);
     printf("type 2 probability = %f\t", PROB_T2);
@@ -2432,17 +2565,6 @@ static double estimation(float* params)
 		printf("%hu\t%lu\t", t, occ_notype_distribution_count[t]);
         for (unsigned short st = 0; st < STATE_SIZE; ++st)
         {
-            //weighted_average = 0.0f;
-
-            /*for (unsigned short ty = 0; ty < TYPE_SIZE; ++ty)
-            {
-                weighted_average += prob_tt[ty]*(float)occ_distribution[ty][st][t]/(float)occ_distribution_count[ty][t];
-            }*/
-
-			/*for (unsigned short ty = 0; ty < TYPE_SIZE; ++ty)
-			{
-				p_type_given_occ[ty][st][t] = prob_tt[ty]*((float)occ_distribution[ty][st][t]/(float)occ_distribution_count[ty][t])/weighted_average;
-			}*/
 			printf("%f\t", (float)occ_notype_distribution[st][t]/(float)occ_notype_distribution_count[t]);
         }
 
@@ -2518,22 +2640,10 @@ static double estimation(float* params)
 	printf("avg\t");
     for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
     {
-        //weighted_average = 0.0f;
-
-        /*for (unsigned short ty = 0; ty < TYPE_SIZE; ++ty)
-        {
-        	weighted_average += p_type_given_occ[ty][WHITE][max_T]*wage_white_rg_sum[ty][rg]/(float)wage_white_rg_count[ty][rg];
-        }*/
         printf("%.3f\t", wage_white_notype_rg_sum[rg]/(float)wage_white_notype_rg_count[rg]);
     }
 
 	// average across all regions
-    //weighted_average = 0.0f;
-
-    /*for (unsigned short ty = 0; ty < TYPE_SIZE; ++ty)
-    {
-        weighted_average += p_type_given_occ[ty][WHITE][max_T]*wage_white_sum[ty]/(float)wage_white_count[ty];
-    }*/
     printf("%.3f\t", wage_white_notype_sum/(float)wage_white_notype_count);
 
 	// real values
@@ -2618,22 +2728,10 @@ static double estimation(float* params)
 	printf("avg\t");
     for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
     {
-        //weighted_average = 0.0f;
-
-        /*for (unsigned short ty = 0; ty < TYPE_SIZE; ++ty)
-        {
-            weighted_average += p_type_given_occ[ty][BLUE][max_T]*wage_blue_rg_sum[ty][rg]/(float)wage_blue_rg_count[ty][rg];
-        }*/
         printf("%.3f\t",  wage_blue_rg_notype_sum[rg]/(float)wage_blue_rg_notype_count[rg]);
     }
     
 	// average across all regions
-    //weighted_average = 0.0f;
-
-    /*for (unsigned short ty = 0; ty < TYPE_SIZE; ++ty)
-    {
-		weighted_average += p_type_given_occ[ty][BLUE][max_T]*wage_blue_sum[ty]/(float)wage_blue_count[ty];
-    }*/
     printf("%.3f\t", wage_blue_notype_sum/(float)wage_blue_notype_count);
 
 	// real values
@@ -2719,22 +2817,10 @@ static double estimation(float* params)
     printf("avg\t");
     for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
     {
-        //weighted_average = 0.0f;
-
-        /*for (unsigned short ty = 0; ty < TYPE_SIZE; ++ty)
-        {
-			weighted_average += prob_tt[ty]*rent_rg_sum[ty][rg]/(float)rent_rg_count[ty][rg];
-        }*/
         printf("%.3f\t", rent_rg_notype_sum[rg]/(float)rent_rg_notype_count[rg]);
     }
 
     // average across all regions
-    //weighted_average = 0.0f;
-
-    /*for (unsigned short ty = 0; ty < TYPE_SIZE; ++ty)
-    {
-        weighted_average += prob_tt[ty]*rent_sum[ty]/(float)rent_count[ty];
-    }*/
     printf("%.3f\t", rent_notype_sum/(float)rent_notype_count);
 
 	// real values
@@ -2788,12 +2874,6 @@ static double estimation(float* params)
 		printf("%hu\t%lu\t", t, house_notype_distribution_count[t]);
         for (unsigned rg = 0; rg < RG_SIZE; ++rg)
         {
-			//weighted_average = 0.0f;
-
-			/*for (unsigned short ty = 0; ty < TYPE_SIZE; ++ty)
-			{
-            	weighted_average += prob_tt[ty]*(float)house_distribution[ty][rg][t]/(float)house_distribution_count[ty][t];
-			}*/
             printf("%f\t", (float)house_notype_distribution[rg][t]/(float)house_notype_distribution_count[t]);
         }
         printf("\n");
@@ -2843,12 +2923,6 @@ static double estimation(float* params)
 		printf("%hu\t%lu\t", t, work_rg_notype_distribution_count[t]);
         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
         {
-            //weighted_average = 0.0f;
-
-            /*for (unsigned short ty = 0; ty < TYPE_SIZE; ++ty)
-            {
-                weighted_average += p_type_given_occ[ty][WHITE][t]*(float)work_rg_distribution[ty][rg][t]/(float)work_rg_distribution_count[ty][t];
-            }*/
 			printf("%f\t", (float)work_rg_notype_distribution[rg][t]/(float)work_rg_notype_distribution_count[t]);
         }
         printf("\n");
@@ -2897,11 +2971,6 @@ static double estimation(float* params)
 		printf("%hu\t%lu\t", h_rg+1, house_work_rg_notype_distribution_count[h_rg]);
 		for (unsigned short w_rg = 0; w_rg < RG_SIZE; ++w_rg)
 		{
-            //weighted_average = 0.0f;
-            /*for (unsigned short ty = 0; ty < TYPE_SIZE; ++ty)
-            {
-                weighted_average += p_type_given_occ[ty][WHITE][max_T]*(float)house_work_rg_distribution[ty][h_rg][w_rg]/(float)house_work_rg_distribution_count[ty][h_rg];
-            }*/
 			printf("%f\t", (float)house_work_rg_notype_distribution[h_rg][w_rg]/(float)house_work_rg_notype_distribution_count[h_rg]);
         }
         printf("\n");
@@ -2988,8 +3057,11 @@ static const char* IND_DATA_FILENAME = "ind_data_3.txt";
 static const char* MOMENTS_FILENAME = "olim_wide_3.txt";
 static const char* INITIAL_PARAM_FILE = "params.txt";
 static const char* PARAM_INDEX_FILE = "params_index.txt";
-static const char* FR_FILE_NAME = "fr_params.txt";
 static const char* WIFE_EDU_FILENAME = "wife_edu.txt";
+#ifdef SIMULATION
+static const char* FR_FILE_NAME = "fr_params.txt";
+static const char* IND_FILTER_FILENAME = "ind_filter.txt";
+#endif
 
 // main functions
 int main(int argc, char** argv)
@@ -3013,14 +3085,14 @@ int main(int argc, char** argv)
 #elif SIMULATION 
 	if (argc < 4)
 	{
-		fprintf(stderr, "usage: %s <input filename> <output filename> <simulation type 0-3,5> [percent 0-100]\n", argv[0]);
+		fprintf(stderr, "usage: %s <input filename> <output filename> <simulation type 0-3,5,6> [percent 0-100]\n", argv[0]);
         return -1;
 	}
 
 	unsigned int sim_type = atoi(argv[3]);
-    if (sim_type && sim_type != WAGE_SIM && sim_type != RENT_SIM && sim_type != TC_SIM && sim_type != FR_SIM)
+    if (sim_type && sim_type != WAGE_SIM && sim_type != RENT_SIM && sim_type != TC_SIM && sim_type != FR_SIM && sim_type != MARRIED_SIM)
     {
-        fprintf(stderr, "invalid simulation type value. valid values are:\n0 - none\n1 - rent\n2 - wage\n3 - travel cost\n5 - future interest\n");
+        fprintf(stderr, "invalid simulation type value. valid values are:\n0 - none\n1 - rent\n2 - wage\n3 - travel cost\n5 - future interest\n6 - married only\n");
         return -1;
     }
 
@@ -3049,6 +3121,20 @@ int main(int argc, char** argv)
         fprintf(stderr, "usage: %s <input filename> <output filename> [tag]\n", argv[0]);
         return -1;
     }
+#endif
+
+#ifdef SIMULATION
+	if (sim_type == MARRIED_SIM)
+    {
+	    if (!load_individuals_filter(IND_FILTER_FILENAME))
+	    {
+		    fprintf(stderr, "failed to load individual's filter from file %s - using all individuals\n", IND_FILTER_FILENAME);
+			for (int I = 0; I < OBS; ++I)
+	        {
+				IND_FILTER_arr[I] = 1;
+	        }
+	    }
+	}
 #endif
 
     if (!load_individuals(IND_DATA_FILENAME))
@@ -3121,7 +3207,7 @@ int main(int argc, char** argv)
 		fprintf(stderr, "failed to load future interest paramsfrom file %s\n", FR_FILE_NAME);
         return -1;
 	}
-	double value = estimation(x, sim_type, sim_percent);
+	estimation(x, sim_type, sim_percent);
 
 #else  // not CALC_STDEV nor SIMULATION
 
@@ -3140,10 +3226,12 @@ int main(int argc, char** argv)
     
    	// write function value to output file
     fprintf(fp, "%e\n", value);
-	 // close output file
+#endif
+
+#ifndef SIMULATION
+	// close output file - either estimation value or stdev output
     fclose(fp);
 #endif
 
     return 0;
 }
-
