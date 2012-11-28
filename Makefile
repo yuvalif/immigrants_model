@@ -1,14 +1,14 @@
-
 # the compiler to use
-
+CC=$(shell which icpc)
+ifneq ($(CC),)
 CC=icpc
-#CC=g++
-
-#compilation flags
 CWARNING_FLAGS=-Wall -wd981 -wd193 -wd2259 -wd1572
 CFLAGS=$(CWARNING_FLAGS) -opt-prefetch -fno-alias -fno-exceptions -fp-model fast=2 -fast-transcendentals -O3 -static
-#CWARNING_FLAGS=-Wall
-#CFLAGS=$(CWARNING_FLAGS) -O3
+else
+CC=g++
+CWARNING_FLAGS=-Wall
+CFLAGS=$(CWARNING_FLAGS) -O3
+endif
 
 TARGETS=estimation \
 estimation_debug \
@@ -33,6 +33,7 @@ all: $(TARGETS)
 
 estimation: estimation.cpp
 	@echo Building $@...;
+	@echo $(CC);
 	@$(CC) $(CFLAGS) -DINFO -o $@ $<;
 
 estimation_debug: estimation.cpp
