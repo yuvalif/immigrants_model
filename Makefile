@@ -33,7 +33,6 @@ all: $(TARGETS)
 
 estimation: estimation.cpp
 	@echo Building $@...;
-	@echo $(CC);
 	@$(CC) $(CFLAGS) -DINFO -o $@ $<;
 
 estimation_debug: estimation.cpp

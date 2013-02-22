@@ -3172,7 +3172,7 @@ int main(int argc, char** argv)
         if (!load_individuals_filter(IND_FILTER_FILENAME))
         {
             fprintf(stderr, "failed to load individual's filter from file %s - using all individuals\n", IND_FILTER_FILENAME);
-            for (int I = 0; I < OBS; ++I)
+            for (unsigned int I = 0; I < OBS; ++I)
             {
                 IND_FILTER_arr[I] = 1;
             }

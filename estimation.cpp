@@ -1094,13 +1094,13 @@ static double estimation(float* params)
         const float prob_nonfired_w = 1.0f/(1.0f + expf(TYPE2*aw[1]+TYPE3*aw[2]+(1-TYPE2-TYPE3)*aw[0]));
         //probability of not losing your job in blue collar
         const float prob_nonfired_b = 1.0f/(1.0f + expf(TYPE2*ab[1]+TYPE3*ab[2]+(1-TYPE2-TYPE3)*ab[0]));
+        const float const_lamda_work_2w = (lamda21_1*SCHOOL1 + lamda21_2*SCHOOL2 + lamda21_3*SCHOOL3) + 
+                                            lamda23*AGE+lamda27*TYPE2+lamda28*TYPE3; //part of the probability of getting job offer in white - page 13
+        const float const_lamda_work_2b = lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3; //part of the probability of getting job offer in blue - page 13
 #else
         const float prob_nonfired_w = 1.0f;
         const float prob_nonfired_b = 1.0f;
 #endif
-        const float const_lamda_work_2w = (lamda21_1*SCHOOL1 + lamda21_2*SCHOOL2 + lamda21_3*SCHOOL3) + 
-                                            lamda23*AGE+lamda27*TYPE2+lamda28*TYPE3; //part of the probability of getting job offer in white - page 13
-        const float const_lamda_work_2b = lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3; //part of the probability of getting job offer in blue - page 13
         const float t_const_tmp_w = (beta21_1*SCHOOL1 + beta21_2*SCHOOL2 + beta21_3*SCHOOL3) + 
                                             beta22*EXP_U+beta23*EXP_U_SQ+beta27*TYPE2+beta28*TYPE3;  //part of the wage equation  white collar- equation 7 page 14
         const float t_const_tmp_b = (beta31_1*SCHOOL1 + beta31_2*SCHOOL2 + beta31_3*SCHOOL3) + 
@@ -1576,11 +1576,13 @@ static double estimation(float* params)
                 float max_utility = -INFINITY;
                 bool w_wage_flag = false;
                 bool b_wage_flag = false;
-                const unsigned long t_sq = t*t;
-                const unsigned long k_sq = k*k;
                 const unsigned short age40 = (((float)AGE + (float)t/2.0f) > 39.5f);
+                const unsigned long k_sq = k*k;
+#ifndef WAGE_SELECTION
+                const unsigned long t_sq = t*t;
                 const float lamda_work_2w = const_lamda_work_2w+lamda25*t+lamda26*(float)t_sq; //part of the probability of getting job offer in white - page 13
                 const float lamda_work_2b = const_lamda_work_2b+lamda35*t+lamda36*(float)t_sq; //part of the probability of getting job offer in blue - page 13
+#endif
                 //part of the wage equation  white collar- equation 7 page 14 (adding exp and exp^2 still miss:const by region)
                 const float rg_const_tmp_w = t_const_tmp_w+beta26*age40+beta24*k+beta25*(float)k_sq;
                 //part of the wage equation  blue collar- equation 7 page 14 (adding exp and exp^2 still miss:const by region)
@@ -3129,7 +3131,7 @@ int main(int argc, char** argv)
         if (!load_individuals_filter(IND_FILTER_FILENAME))
         {
             fprintf(stderr, "failed to load individual's filter from file %s - using all individuals\n", IND_FILTER_FILENAME);
-            for (int I = 0; I < OBS; ++I)
+            for (unsigned int I = 0; I < OBS; ++I)
             {
                 IND_FILTER_arr[I] = 1;
             }
