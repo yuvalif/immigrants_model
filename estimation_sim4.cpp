@@ -1568,7 +1568,7 @@ static double estimation(float* params)
         for (unsigned short draw = 0; draw < draws_f; ++draw)
         {
 #ifdef FULL_TRACE
-            printf("%hu %hu %hu ", I_id, I_type, draw); 
+            printf("%hu %hu %hu %hu ", I_id, (REP1 ? 1 : (REP2 ? 2 : (REP3 ? 3 : 4))),  I_type, draw);
 #endif
             unsigned short dwage_b = 0;
             unsigned short dwage_w = 0;
