@@ -1033,6 +1033,9 @@ static double estimation(float* params)
     // string likelihood per individual    
     double like_arr[OBS];
 #ifdef SIMULATION
+    double total_max_utility[T];
+    memset(total_max_utility, '\0', sizeof(total_max_utility));
+    unsigned long total_max_utility_count[T] = {0};
     double total_benefit = 0.0;
 #endif
 
@@ -2288,6 +2291,10 @@ static double estimation(float* params)
                         }
                     }
                 }
+#ifdef SIMULATION
+                total_max_utility[t] += max_utility;
+                ++total_max_utility_count[t];
+#endif
             } // end loop on t
 #ifdef FULL_TRACE
             printf("\n");
@@ -2583,6 +2590,15 @@ static double estimation(float* params)
     }
     
     printf("==============================\ntotal cost = %f\n", total_benefit/1000.0);
+    
+    printf("------------------------------------------\n");
+    printf(" T |   Count   |   Average Max Utility   |\n");
+    printf("------------------------------------------\n");
+    for (unsigned short t = 0; t < T; ++t)
+    {
+        printf("%hu\t%lu\t%.0f\n", t, total_max_utility_count[t],  
+            (total_max_utility_count[t] > 0) ? total_max_utility[t]/(double)total_max_utility_count[t] : 0.0);
+    }
 
 #endif
 
