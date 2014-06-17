@@ -66,7 +66,11 @@ inline float randn01()
 // program constant
 const unsigned int TYPE_SIZE    = 3;                // # of types
 const unsigned short T          = 20;               // time
+#ifdef WIFE_MODE
+const unsigned int OBSR         = 529;              // individual 
+#else // regular mode
 const unsigned int OBSR         = 697;              // individual 
+#endif
 const unsigned int OBS          = OBSR*TYPE_SIZE;   // individual multiplay by number of types
 const unsigned int DRAWS        = 30;               // draws for emax
 const unsigned int RG_SIZE      = 7;                // # of regions
@@ -392,7 +396,11 @@ const unsigned short  UE    = 0;
 const unsigned short  BLUE  = 2;
 const unsigned short  WHITE = 1;
 
+#ifdef WIFE_MODE
+const unsigned short MOMENTS_PERIODS = 12;
+#else // regular mode
 const unsigned short MOMENTS_PERIODS = 13;
+#endif
 
 short occupation_arr[OBS][MOMENTS_PERIODS]; // real occ
 short live_arr[OBS][MOMENTS_PERIODS];       // real housing region
@@ -405,7 +413,11 @@ short sample_arr[OBS][MOMENTS_PERIODS];     // real state 0-63
 
 static bool load_moments(const char* filename)
 {
+#ifdef WIFE_MODE
+    const int COLUMN_NUMBER = 49; 
+#else // regular mode
     const int COLUMN_NUMBER = 53;
+#endif
     FILE* fp = fopen(filename,"r");
     if (fp)
     {
@@ -421,6 +433,23 @@ static bool load_moments(const char* filename)
         {
             if (fgets(line, LINE_MAX, fp) != 0)
             {
+#ifdef WIFE_MODE
+                col_num = sscanf(line, 
+                     "%u%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd",
+                     &(familyid), 
+                     &(occupation(I,0)), &(live(I,0)), &(work(I,0)), &(sample(I,0)),
+                     &(occupation(I,1)), &(live(I,1)), &(work(I,1)), &(sample(I,1)),
+                     &(occupation(I,2)), &(live(I,2)), &(work(I,2)), &(sample(I,2)),
+                     &(occupation(I,3)), &(live(I,3)), &(work(I,3)), &(sample(I,3)),
+                     &(occupation(I,4)), &(live(I,4)), &(work(I,4)), &(sample(I,4)),
+                     &(occupation(I,5)), &(live(I,5)), &(work(I,5)), &(sample(I,5)),
+                     &(occupation(I,6)), &(live(I,6)), &(work(I,6)), &(sample(I,6)),
+                     &(occupation(I,7)), &(live(I,7)), &(work(I,7)), &(sample(I,7)),
+                     &(occupation(I,8)), &(live(I,8)), &(work(I,8)), &(sample(I,8)),
+                     &(occupation(I,9)), &(live(I,9)), &(work(I,9)), &(sample(I,9)),
+                     &(occupation(I,10)), &(live(I,10)), &(work(I,10)), &(sample(I,10)),
+                     &(occupation(I,11)), &(live(I,11)), &(work(I,11)), &(sample(I,11)));
+#else // regular mode
                 col_num = sscanf(line, 
                      "%u%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd",
                      &(familyid), 
@@ -437,7 +466,7 @@ static bool load_moments(const char* filename)
                      &(occupation(I,10)), &(live(I,10)), &(work(I,10)), &(sample(I,10)),
                      &(occupation(I,11)), &(live(I,11)), &(work(I,11)), &(sample(I,11)),
                      &(occupation(I,12)), &(live(I,12)), &(work(I,12)), &(sample(I,12)));
-
+#endif
                 if (col_num != COLUMN_NUMBER)
                 {
                     printf("wrong format in file %s number of columns: %d \n", filename, col_num);
@@ -3081,12 +3110,17 @@ static unsigned short load_dynamic_index(const char* filename, unsigned short* i
         return 0;
     }
 }
-
+#ifdef WIFE_MODE
+static const char* IND_DATA_FILENAME = "wife_ind_data_3.txt";
+static const char* MOMENTS_FILENAME = "wife_olim_wide_3.txt";
+static const char* WIFE_EDU_FILENAME = "husband_edu.txt"; // this is not a mistake! in "wife mode" the husband is the "wife"
+#else // regular mode
 static const char* IND_DATA_FILENAME = "ind_data_3.txt";
 static const char* MOMENTS_FILENAME = "olim_wide_3.txt";
+static const char* WIFE_EDU_FILENAME = "wife_edu.txt";
+#endif
 static const char* INITIAL_PARAM_FILE = "params.txt";
 static const char* PARAM_INDEX_FILE = "params_index.txt";
-static const char* WIFE_EDU_FILENAME = "wife_edu.txt";
 #ifdef SIMULATION
 static const char* FR_FILE_NAME = "fr_params.txt";
 static const char* IND_FILTER_FILENAME = "ind_filter.txt";

@@ -27,7 +27,8 @@ estimation_test_full \
 estimation_test_fullwage \
 estimation_wage_selection \
 estimation_fullwage_selection \
-estimation_ref
+estimation_ref \
+estimation_wife
 
 all: $(TARGETS)
 
@@ -102,6 +103,11 @@ estimation_fullwage_selection: estimation.cpp
 estimation_ref: estimation.cpp
 	@echo Building $@...;
 	@$(CC) $(CFLAGS) -DTRACE -DINFO -DREF_PARAM -o $@ $<;
+
+estimation_wife: estimation.cpp
+	@echo Building $@...;
+	@$(CC) $(CFLAGS) -DTRACE -DINFO -DWIFE_MODE -o $@ $<;
+
 clean:
 	@echo Removing all executables...
 	@rm -rf $(TARGETS)
