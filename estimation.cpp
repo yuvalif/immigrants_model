@@ -669,10 +669,20 @@ static const unsigned int MARRIED_SIM = 6;
 // estimation function used inside the optimization process to find the params the find minimum likelihood
 // input: array of MAX_PARAM_LEN (153) parameters
 // output: likelihood of these params in respect to the individuals' params and the moments
+
+#define RENT_REF_PARAM 1.0
+#define WAGE_REF_PARAM 1.0
+
 #ifdef CALC_STDEV
 static double estimation(float* params, FILE *fp)
 #elif SIMULATION
 static double estimation(float* params, unsigned int sim_type, float sim_percent)
+#elif REF_PARAM
+#undef RENT_REF_PARAM
+#undef WAGE_REF_PARAM
+#define RENT_REF_PARAM rent_param
+#define WAGE_REF_PARAM wage_param
+static double estimation(float* params, float rent_param, float wage_param)
 #else
 static double estimation(float* params)
 #endif
@@ -1079,7 +1089,7 @@ static double estimation(float* params)
         {
             const_taste[rg] = teta0[rg]+teta1[rg]*REP1+teta2[rg]*REP2+teta3[rg]*REP3; //taste for housing in a specific region - equation 5 page 13
             // define const taste, move the final calculation into draws
-            rent[rg] = 6.0f*expf(gama0[rg]+rent_for_all_regions); // full cost of housing rent/mor - equation 6
+            rent[rg] = 6.0f*expf(gama0[rg]+rent_for_all_regions)*RENT_REF_PARAM; // full cost of housing rent/mor - equation 6
             wife[rg] = psi1[rg]*M + psi2[rg]*M*WIFE_EDU + psi3[rg]*M*KIDS + psi4[rg]*M*AGE;
 #ifdef SIMULATION
             if (sim_type == RENT_SIM)
@@ -1212,9 +1222,9 @@ static double estimation(float* params)
                         for (unsigned short dwage = 0; dwage < D_WAGE; ++dwage)
                         {
                             // tmp1_w = beta21*SCHOOL+beta22*EXP_U+beta23*EXP_U_SQ+beta27*TYPE2+beta28*TYPE3+beta26*age40+beta24*k+beta25*k_sq+beta20[rg]  
-                            wage_w[dwage] = 6.0f*expf(rg_const_tmp_w + beta20[rg] + sgma[0]*(tmp1 + row_w*P_W_ERROR[dwage]));
+                            wage_w[dwage] = 6.0f*expf(rg_const_tmp_w + beta20[rg] + sgma[0]*(tmp1 + row_w*P_W_ERROR[dwage]))*WAGE_REF_PARAM;
                             // tmp1_b = beta31*SCHOOL+beta32*EXP_U+beta33*EXP_U_SQ+beta37*TYPE2+beta38*TYPE3+beta36*age40+beta34*k+beta35*k_sq+beta30[rg]
-                            wage_b[dwage] = 6.0f*expf(rg_const_tmp_b + beta30[rg] + sgma[1]*(tmp2 + row_b*P_W_ERROR[dwage]));           
+                            wage_b[dwage] = 6.0f*expf(rg_const_tmp_b + beta30[rg] + sgma[1]*(tmp2 + row_b*P_W_ERROR[dwage]))*WAGE_REF_PARAM;           
                             
 #ifdef SIMULATION
                             if (sim_type == WAGE_SIM)
@@ -1644,12 +1654,12 @@ static double estimation(float* params)
                     taste[rg] = const_taste[rg];// + expf(sgma[3]*tmp0);
                     // tmp1_w = beta21*SCHOOL+beta22*EXP_U+beta23*EXP_U_SQ+beta27*TYPE2+beta28*TYPE3+beta26*age40+beta24*k+beta25*k_sq+beta20[rg]
                     float tmp1 = epsilon_f(draw,I,t,rg,WHITE);
-                    wage_w_non_f[rg] = 6.0f*expf(rg_const_tmp_w + beta20[rg] + sgma[0]*(tmp1+row_w*P_W_ERROR[dwage_w]));
-                    wage_w[rg] = 6.0f*expf(rg_const_tmp_w + beta20[rg] + sgma[0]*tmp1);
+                    wage_w_non_f[rg] = 6.0f*expf(rg_const_tmp_w + beta20[rg] + sgma[0]*(tmp1+row_w*P_W_ERROR[dwage_w]))*WAGE_REF_PARAM;
+                    wage_w[rg] = 6.0f*expf(rg_const_tmp_w + beta20[rg] + sgma[0]*tmp1)*WAGE_REF_PARAM;
                     // tmp1_b = beta31*SCHOOL+beta32*EXP_U+beta33*EXP_U_SQ+beta37*TYPE2+beta38*TYPE3+beta36*age40+beta34*k+beta35*k_sq+beta30[rg]
                     float tmp2 = epsilon_f(draw,I,t,rg,BLUE);
-                    wage_b_non_f[rg] = 6.0f*expf(rg_const_tmp_b + beta30[rg] + sgma[1]*(tmp2+row_b*P_W_ERROR[dwage_b]));
-                    wage_b[rg] = 6.0f*expf(rg_const_tmp_b + beta30[rg] + sgma[1]*tmp2);
+                    wage_b_non_f[rg] = 6.0f*expf(rg_const_tmp_b + beta30[rg] + sgma[1]*(tmp2+row_b*P_W_ERROR[dwage_b]))*WAGE_REF_PARAM;
+                    wage_b[rg] = 6.0f*expf(rg_const_tmp_b + beta30[rg] + sgma[1]*tmp2)*WAGE_REF_PARAM;
 
 #ifdef SIMULATION
                     if (sim_type == WAGE_SIM)
@@ -3133,7 +3143,15 @@ int main(int argc, char** argv)
         return -1;
     }
     sim_percent /= 100.0f;
-
+#elif REF_PARAM
+    if (argc < 5)
+    {
+        fprintf(stderr, "usage: %s <input filename> <output filename> <rent param> <wage param>\n", argv[0]);
+        return -1;
+    }
+    
+    float rent_param = (float)atof(argv[3]);
+    float wage_param = (float)atof(argv[4]);
 #else // not CALC_STDEV nor SIMULATION
     if (argc < 3)
     {
@@ -3227,6 +3245,11 @@ int main(int argc, char** argv)
         return -1;
     }
     estimation(x, sim_type, sim_percent);
+#elif REF_PARAM
+    double value = estimation(x, rent_param, wage_param);
+#ifdef INFO
+    printf("estimation = %e, took: %f seconds\n", value, toc(tv));
+#endif
 
 #else  // not CALC_STDEV nor SIMULATION
 
@@ -3247,7 +3270,8 @@ int main(int argc, char** argv)
     fprintf(fp, "%e\n", value);
 #endif
 
-#ifndef SIMULATION
+#if (SIMULATION || REF_PARAM)
+#else
     // close output file - either estimation value or stdev output
     fclose(fp);
 #endif

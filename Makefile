@@ -23,11 +23,11 @@ estimation_sim4 \
 estimation_sim4_full \
 estimation_sim4_fullrent \
 estimation_sim4_fullwage \
-estimation_test \
 estimation_test_full \
 estimation_test_fullwage \
 estimation_wage_selection \
-estimation_fullwage_selection
+estimation_fullwage_selection \
+estimation_ref
 
 all: $(TARGETS)
 
@@ -99,6 +99,9 @@ estimation_fullwage_selection: estimation.cpp
 	@echo Building $@...;
 	@$(CC) $(CFLAGS) -DTRACE -DINFO -DWAGE_SELECTION -DFULL_TRACE -DFULL_TRACE_WAGE -o $@ $<;
 
+estimation_ref: estimation.cpp
+	@echo Building $@...;
+	@$(CC) $(CFLAGS) -DTRACE -DINFO -DREF_PARAM -o $@ $<;
 clean:
 	@echo Removing all executables...
 	@rm -rf $(TARGETS)
