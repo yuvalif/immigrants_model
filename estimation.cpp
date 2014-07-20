@@ -1,4 +1,4 @@
-/*
+    /*
 by Osnat Lifshitz, Chemi Gotlibovski (2009)
 */
 
@@ -66,11 +66,7 @@ inline float randn01()
 // program constant
 const unsigned int TYPE_SIZE    = 3;                // # of types
 const unsigned short T          = 20;               // time
-#ifdef WIFE_MODE
 const unsigned int OBSR         = 529;              // individual 
-#else // regular mode
-const unsigned int OBSR         = 697;              // individual 
-#endif
 const unsigned int OBS          = OBSR*TYPE_SIZE;   // individual multiplay by number of types
 const unsigned int DRAWS        = 30;               // draws for emax
 const unsigned int RG_SIZE      = 7;                // # of regions
@@ -91,7 +87,9 @@ const unsigned int DRAWS_F      = 100;              // draws for forward solving
 #endif // SIMULATION
 const unsigned int D_WAGE       = 6;                //
 const unsigned int TAU          = 50000;
-const unsigned int STATE_VECTOR_SIZE = RG_SIZE*RG_SIZE + 2*RG_SIZE; // 63 states
+const unsigned int STATE_VECTOR_SIZE = RG_SIZE*RG_SIZE + 3*RG_SIZE; 
+// work regions * house regions for white + house regions for blue full + house regions for blue partial + house regions for unemployed
+// 7*7 + 7 + 7 + 7 = 70
 
 // random draws
 float randn_b_arr[DRAWS][OBS][T][RG_SIZE][STATE_SIZE];
@@ -202,7 +200,7 @@ static bool load_individuals(const char* filename)
                 {
                     printf("wrong format in file %s number of columns: %d \n", filename, col_num);
                     printf("line[%hu]: %s\n", I, line);
-                    printf("format: M\tKIDS\tEXP_U\tSCHOOL\tWAGE\tAG\tPERIODS\tRENT_MO\tD_MO\tREP1\tREP2\tREP3\tTYPE3\tTYPE2\n");
+                    printf("format: M\tKIDS\tEXP_U\tSCHOOL\tWAGE\tAGE\tPERIODS\tRENT_MO\tD_MO\tREP1\tREP2\tREP3\tTYPE3\tTYPE2\n");
                     fclose(fp);
                     return false;
                 } 
@@ -396,16 +394,12 @@ const unsigned short  UE    = 0;
 const unsigned short  BLUE  = 2;
 const unsigned short  WHITE = 1;
 
-#ifdef WIFE_MODE
 const unsigned short MOMENTS_PERIODS = 12;
-#else // regular mode
-const unsigned short MOMENTS_PERIODS = 13;
-#endif
 
-short occupation_arr[OBS][MOMENTS_PERIODS]; // real occ
+short occupation_arr[OBS][MOMENTS_PERIODS]; // real occupation
 short live_arr[OBS][MOMENTS_PERIODS];       // real housing region
 short work_arr[OBS][MOMENTS_PERIODS];       // real work region
-short sample_arr[OBS][MOMENTS_PERIODS];     // real state 0-63
+short sample_arr[OBS][MOMENTS_PERIODS];     // real state 0-69
 #define occupation(i,j) occupation_arr[(i)][(j)]
 #define live(i,j) live_arr[(i)][(j)]
 #define work(i,j) work_arr[(i)][(j)]
@@ -413,11 +407,7 @@ short sample_arr[OBS][MOMENTS_PERIODS];     // real state 0-63
 
 static bool load_moments(const char* filename)
 {
-#ifdef WIFE_MODE
     const int COLUMN_NUMBER = 49; 
-#else // regular mode
-    const int COLUMN_NUMBER = 53;
-#endif
     FILE* fp = fopen(filename,"r");
     if (fp)
     {
@@ -433,7 +423,6 @@ static bool load_moments(const char* filename)
         {
             if (fgets(line, LINE_MAX, fp) != 0)
             {
-#ifdef WIFE_MODE
                 col_num = sscanf(line, 
                      "%u%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd",
                      &(familyid), 
@@ -449,24 +438,6 @@ static bool load_moments(const char* filename)
                      &(occupation(I,9)), &(live(I,9)), &(work(I,9)), &(sample(I,9)),
                      &(occupation(I,10)), &(live(I,10)), &(work(I,10)), &(sample(I,10)),
                      &(occupation(I,11)), &(live(I,11)), &(work(I,11)), &(sample(I,11)));
-#else // regular mode
-                col_num = sscanf(line, 
-                     "%u%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd%hd",
-                     &(familyid), 
-                     &(occupation(I,0)), &(live(I,0)), &(work(I,0)), &(sample(I,0)),
-                     &(occupation(I,1)), &(live(I,1)), &(work(I,1)), &(sample(I,1)),
-                     &(occupation(I,2)), &(live(I,2)), &(work(I,2)), &(sample(I,2)),
-                     &(occupation(I,3)), &(live(I,3)), &(work(I,3)), &(sample(I,3)),
-                     &(occupation(I,4)), &(live(I,4)), &(work(I,4)), &(sample(I,4)),
-                     &(occupation(I,5)), &(live(I,5)), &(work(I,5)), &(sample(I,5)),
-                     &(occupation(I,6)), &(live(I,6)), &(work(I,6)), &(sample(I,6)),
-                     &(occupation(I,7)), &(live(I,7)), &(work(I,7)), &(sample(I,7)),
-                     &(occupation(I,8)), &(live(I,8)), &(work(I,8)), &(sample(I,8)),
-                     &(occupation(I,9)), &(live(I,9)), &(work(I,9)), &(sample(I,9)),
-                     &(occupation(I,10)), &(live(I,10)), &(work(I,10)), &(sample(I,10)),
-                     &(occupation(I,11)), &(live(I,11)), &(work(I,11)), &(sample(I,11)),
-                     &(occupation(I,12)), &(live(I,12)), &(work(I,12)), &(sample(I,12)));
-#endif
                 if (col_num != COLUMN_NUMBER)
                 {
                     printf("wrong format in file %s number of columns: %d \n", filename, col_num);
@@ -479,49 +450,98 @@ static bool load_moments(const char* filename)
 #ifdef TRACE_LOAD
                     printf("line[%hu]: %s", I, line);
 #endif
-#ifdef SANITY
                     for (unsigned short t = 0; t < MOMENTS_PERIODS; ++t)
                     {
+                        if (live(I,t) != -1)
+                        {
+                            --live(I,t);
+                        }
+                        if (work(I,t) != -1)
+                        {
+                            --work(I,t);
+                        }
+
+#ifdef SANITY
                         short st = sample(I,t);
                         if (st != -1)
                         {
+                            bool inconsistent = false;
+                            static const int FIRST_WHITE_VALUE = 21;
                             // all info must be known
-                            if (occupation(I,t) == -1 || live(I,t) == -1 || (work(I,t) == -1 && st > 13))
+                            if (occupation(I,t) == -1 || live(I,t) == -1 || (work(I,t) == -1 && st >= FIRST_WHITE_VALUE))
                             {
-                                printf("SANITY: data missing for I = %hu, t = %hu\n", I, t);
+                                printf("line[%hu]: data missing for period = %hu, status = %d\n", I, t, st);
+                                inconsistent = true;
                             }
-                
-                            short work_rg;
-                            short house_rg;
+               
+                            if (occupation(I,t) < -1 || occupation(I,t) > 2)
+                            {
+                                printf("line[%hu]: invalid occupation = %d\n", I, occupation(I,t));
+                                inconsistent = true;
+                            }
+                            if (live(I,t) < -1 || live(I,t) > 6)
+                            {
+                                printf("line[%hu]: invalid housing region = %d\n", I, live(I,t));
+                                inconsistent = true;
+                            }
+                            if (work(I,t) < -1 || work(I,t) > 6)
+                            {
+                                printf("line[%hu]: invalid work region = %d\n", I, work(I,t));
+                                inconsistent = true;
+                            }
+                            if (sample(I,t) < -1 || sample(I,t) > 69)
+                            {
+                                printf("line[%hu]: invalid status = %d\n", I, sample(I,t));
+                                inconsistent = true;
+                            }
+                            
                             div_t house_info = div(st,7);
-                            house_rg = (short)house_info.rem;
-                            work_rg = (short)house_info.quot;
+                            short house_rg = (short)house_info.rem;
+                            short work_rg = (short)house_info.quot;
                             // work region 0 = unemployment
-                            // work region 1 = blue
-                            // (work region - 2) = white work region
+                            // work region 1 = blue, full time
+                            // work region 2 = blue, part timer
+                            // (work region - 3) = white work region
                             if (live(I,t) != -1 && live(I,t) != house_rg)
                             {
-                                printf("SANITY: housing region inconsistent for I = %hu, t = %hu\n", I, t);
+                                printf("line[%hu]: housing region inconsistent for period = %hu, %d != %hu\n", I, t, house_rg, live(I,t));
+                                inconsistent = true;
                             }
                             if (occupation(I,t) != -1 && ((work_rg == 0 && occupation(I,t) != UE) ||
-                                (work_rg == 1 && occupation(I,t) != BLUE) ||
-                                (work_rg > 1 && occupation(I,t) != WHITE)))
+                                ((work_rg == 1 || work_rg == 2) && occupation(I,t) != BLUE) ||
+                                (work_rg > 2 && occupation(I,t) != WHITE)))
                             {
-                                printf("SANITY: occupation inconsistent for I = %hu, t = %hu\n", I, t);
+                                printf("line[%hu]: occupation inconsistent for period = %hu, %hu != %hu\n", I, t,
+                                        (work_rg == 0 ? UE : (work_rg == 1 ? BLUE : WHITE)), occupation(I,t));
+                                inconsistent = true;
                             }
-                            if (work(I,t) != -1 && work_rg > 1 && (work_rg - 2) != work(I,t))
+                            if (work(I,t) != -1 && work_rg > 2 && (work_rg - 3) != work(I,t))
                             {
-                                printf("SANITY: work region inconsistent for I = %hu, t = %hu\n", I, t);
+                                printf("line[%hu]: work region inconsistent for period = %hu, %d != %hu\n", I, t, work_rg - 3, work(I,t));
+                                inconsistent = true;
+                            }
+                            if (inconsistent)
+                            {
+                                printf("Occupation: %hu Computed Occupation: %d\n", occupation(I,t), (work_rg == 0 ? UE : (work_rg == 1 || work_rg == 2 ? BLUE : WHITE)));
+                                printf("Housing Region: %hu Computed Housing Region: %d\n", live(I,t), house_rg);
+                                printf("Work Region: %d Computed Work Region: %d\n", work(I,t), (work_rg > 2) ? work_rg - 3 : -1);
                             }
                         }
-                    }
 #endif // SANITY
+                    }
                     ++I;
                 }
             } 
             else
             {
-                printf("erorr [%s] reading file [%s] at line [%hu]\n", strerror(errno), filename, I);
+                if (errno == 0)
+                {
+                    printf("invalid number of lines [%hu] in file [%s]\n", I, filename);
+                }
+                else
+                {
+                    printf("erorr [%s] reading file [%s] at line [%hu]\n", strerror(errno), filename, I);
+                }
                 fclose(fp);
                 return false;
             }
@@ -536,7 +556,7 @@ static bool load_moments(const char* filename)
     }
 }
 
-const unsigned short int MAX_PARAM_LEN = 154;   //# of parameters
+const unsigned short int MAX_PARAM_LEN = 156;   //# of parameters
 #define set_param_array(param_name,size) float param_name[(size)]; for (j = 0; j < (size); ++i, ++j) param_name[j] = params[i]; 
 #define set_param(param_name) float param_name = params[i]; ++i;
 
@@ -696,7 +716,7 @@ static const unsigned int MARRIED_SIM = 6;
 #endif
 
 // estimation function used inside the optimization process to find the params the find minimum likelihood
-// input: array of MAX_PARAM_LEN (153) parameters
+// input: array of MAX_PARAM_LEN (156) parameters
 // output: likelihood of these params in respect to the individuals' params and the moments
 
 #define RENT_REF_PARAM 1.0
@@ -883,6 +903,8 @@ static double estimation(float* params)
     set_param_array(psi3, RG_SIZE) //married*kids by region[140...146]
     set_param_array(psi4, RG_SIZE) //married*women age by region[147...153]
 
+    set_param(lamda29) // kids w [154]
+    set_param(lamda39) // kids b [155]
     float PROB_T1=expf(type1)/(1.0f+(expf(type1)+expf(type2)));  
     float PROB_T2=expf(type2)/(1.0f+(expf(type1)+expf(type2)));
     float PROB_T0=1.0f-PROB_T1-PROB_T2;
@@ -1137,8 +1159,8 @@ static double estimation(float* params)
         //probability of not losing your job in blue collar
         const float prob_nonfired_b = 1.0f/(1.0f + expf(TYPE2*ab[1]+TYPE3*ab[2]+(1-TYPE2-TYPE3)*ab[0]));
         const float const_lamda_work_2w = (lamda21_1*SCHOOL1 + lamda21_2*SCHOOL2 + lamda21_3*SCHOOL3) + 
-                                            lamda23*AGE+lamda27*TYPE2+lamda28*TYPE3; //part of the probability of getting job offer in white - page 13
-        const float const_lamda_work_2b = lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3; //part of the probability of getting job offer in blue - page 13
+                                            lamda23*AGE+lamda27*TYPE2+lamda28*TYPE3+lamda29*KIDS; //part of the probability of getting job offer in white - page 13
+        const float const_lamda_work_2b = lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda39*KIDS; //part of the probability of getting job offer in blue - page 13
 #else
         const float prob_nonfired_w = 1.0f;
         const float prob_nonfired_b = 1.0f;
@@ -1348,11 +1370,11 @@ static double estimation(float* params)
                     }//close rg
 
                     /* utility vector
-                        -----------------------------------------------------------------------------------------------------------
-                        || 0-6       || 7-13    || 14-20    || 21-27    ||28 - 34  || 35 - 41  || 42 - 48 || 49 - 55  || 56 - 62 ||
-                        -----------------------------------------------------------------------------------------------------------
-                        || UE        || Blue    || White0   ||  White1  || White2  || White3   || White4  || White5   || White6  ||
-                        -----------------------------------------------------------------------------------------------------------
+                        ---------------------------------------------------------------------------------------------------------------------------
+                        || 0-6       || 7-13       || 14-20      || 21-27    ||28 - 34  || 35 - 41  || 42 - 48 || 49 - 55  || 56 - 62 || 63 - 69 ||
+                        ---------------------------------------------------------------------------------------------------------------------------
+                        || UE        || Blue, full || Blue, part || White0   || White1  || White2   || White3  || White4   || White5  || White6  ||
+                        ---------------------------------------------------------------------------------------------------------------------------
                     */
 
                     for (unsigned short h_rg = 0; h_rg < RG_SIZE; ++h_rg)
@@ -1753,6 +1775,7 @@ static double estimation(float* params)
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                         {
                             choices[rg] = choose_ue[rg] - moving_cost;
+                            // TODO: assuming we only move to blue full, need to add moving to blue partial
                             choices[rg+7] = ue_2b[rg] - moving_cost;
                             // stay in ue and move housing
                             get_max_idx(max_utility, max_index, choose_ue[rg] - moving_cost, rg);
@@ -1766,8 +1789,8 @@ static double estimation(float* params)
                             {
                                 ue_2w[rg][w_rg] = wage_ue_2w[w_rg] + taste[rg] - rent[rg] + wife[rg] - travel_cost(rg,w_rg) + choose_w_emax[rg][w_rg];
                                 // move from ue to white and move housing
-                                choices[rg+14+7*w_rg] = ue_2w[rg][w_rg] - moving_cost;
-                                get_max_idx(max_utility, max_index, ue_2w[rg][w_rg] - moving_cost, rg+14+7*w_rg);
+                                choices[rg+21+7*w_rg] = ue_2w[rg][w_rg] - moving_cost;
+                                get_max_idx(max_utility, max_index, ue_2w[rg][w_rg] - moving_cost, rg+21+7*w_rg);
                             }  //close w_rg
                         }  //close rg
 
@@ -1775,13 +1798,14 @@ static double estimation(float* params)
                         choices[from_h_rg] = choose_ue[from_h_rg];
                         get_max_idx(max_utility, max_index, choose_ue[from_h_rg], from_h_rg);
                         // move from ue to blue and live in the same region
+                        // TODO: assuming we only move to blue full, need to add moving to blue partial
                         choices[from_h_rg+7]=ue_2b[from_h_rg];
                         get_max_idx(max_utility, max_index, ue_2b[from_h_rg], from_h_rg+7);
                         for (unsigned short w_rg = 0; w_rg < RG_SIZE; ++w_rg)
                         {
                             // move from ue to white and live in the same region
-                            choices[from_h_rg+14+7*w_rg] = ue_2w[from_h_rg][w_rg];
-                            get_max_idx(max_utility, max_index, ue_2w[from_h_rg][w_rg], from_h_rg+14+7*w_rg);
+                            choices[from_h_rg+21+7*w_rg] = ue_2w[from_h_rg][w_rg];
+                            get_max_idx(max_utility, max_index, ue_2w[from_h_rg][w_rg], from_h_rg+21+7*w_rg);
                         }
 
                     }
@@ -1791,6 +1815,7 @@ static double estimation(float* params)
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                         {
                             choices[rg] = choose_ue[rg] - moving_cost;
+                            // TODO: assuming we only move to blue full, need to add moving to blue partial
                             choices[rg+7] = ue_2b[rg] - moving_cost;
                             // stay in ue and move housing
                             get_max_idx(max_utility, max_index, choose_ue[rg] - moving_cost, rg);
@@ -1800,8 +1825,8 @@ static double estimation(float* params)
                             {
                                 float ue_2w = wage_ue_2w[w_rg] + taste[rg] - rent[rg] + wife[rg] - travel_cost(rg,w_rg) + choose_w_emax[rg][w_rg];
                                 // move from ue to white and move housing
-                                choices[rg+14+7*w_rg] = ue_2w - moving_cost;
-                                get_max_idx(max_utility, max_index, ue_2w - moving_cost, rg+14+7*w_rg);
+                                choices[rg+21+7*w_rg] = ue_2w - moving_cost;
+                                get_max_idx(max_utility, max_index, ue_2w - moving_cost, rg+21+7*w_rg);
                             } // close w_rg
                         }  // close rg
                     }  // close if t>0
@@ -1814,6 +1839,7 @@ static double estimation(float* params)
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                         {
                             choices[rg] = choose_ue[rg] - moving_cost;
+                            // TODO: assuming we only move to blue full, need to add moving to blue partial
                             choices[rg+7] = work_2b[rg] - moving_cost;
                             // stay in ue and move housing
                             get_max_idx(max_utility, max_index, choose_ue[rg] - moving_cost, rg);
@@ -1827,8 +1853,8 @@ static double estimation(float* params)
                             {
                                 work_2w[rg][to_w_rg] = wage_work_2w[to_w_rg] + taste[rg] - rent[rg] + wife[rg] - travel_cost(rg, to_w_rg) + choose_w_emax[rg][to_w_rg];
                                 // move from blue to white and move housing
-                                choices[rg+14+7*to_w_rg] = work_2w[rg][to_w_rg] - moving_cost;
-                                get_max_idx(max_utility, max_index, work_2w[rg][to_w_rg] - moving_cost, rg+14+7*to_w_rg);
+                                choices[rg+21+7*to_w_rg] = work_2w[rg][to_w_rg] - moving_cost;
+                                get_max_idx(max_utility, max_index, work_2w[rg][to_w_rg] - moving_cost, rg+21+7*to_w_rg);
                             }   //to_w_rg
 
                         }  //rg
@@ -1839,6 +1865,7 @@ static double estimation(float* params)
 #else
                         choices[from_h_rg] = -INFINITY;
 #endif
+                        // TODO: assuming we stay blue full, need to add moving to blue partial
                         // stay in blue and live in the same region
                         choices[from_h_rg+7] = nonfired_2b[from_h_rg];
                         get_max_idx(max_utility, max_index, nonfired_2b[from_h_rg], from_h_rg+7);
@@ -1850,8 +1877,8 @@ static double estimation(float* params)
                         for (unsigned short to_w_rg = 0; to_w_rg < RG_SIZE; ++to_w_rg)
                         {
                             // move from blue to white and live in the same region
-                            choices[from_h_rg+14+7*to_w_rg] = work_2w[from_h_rg][to_w_rg]; 
-                            get_max_idx(max_utility, max_index, work_2w[from_h_rg][to_w_rg], from_h_rg+14+7*to_w_rg);
+                            choices[from_h_rg+21+7*to_w_rg] = work_2w[from_h_rg][to_w_rg]; 
+                            get_max_idx(max_utility, max_index, work_2w[from_h_rg][to_w_rg], from_h_rg+21+7*to_w_rg);
                         }
                     }// close if
                     else   // from_state==WHITE
@@ -1860,6 +1887,7 @@ static double estimation(float* params)
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                         {
                             choices[rg] = choose_ue[rg]- moving_cost;
+                            // TODO: assuming we only move to blue full, need to add moving to blue partial
                             choices[rg+7] = work_2b[rg]- moving_cost;
                             // move from white to ue and move housing
                             get_max_idx(max_utility, max_index, choose_ue[rg] - moving_cost, rg);
@@ -1875,8 +1903,8 @@ static double estimation(float* params)
                                 work_2w[rg][to_w_rg] = wage_work_2w[to_w_rg] + tmp + choose_w_emax[rg][to_w_rg];
                                 nonfired_2w[rg][to_w_rg] = wage_nonfired_2w[to_w_rg] + tmp + choose_w_emax_non_f[rg][to_w_rg];
                                 // stay in white in different work region and move housing
-                                choices[rg+14+7*to_w_rg] = work_2w[rg][to_w_rg] - moving_cost;
-                                get_max_idx(max_utility, max_index, work_2w[rg][to_w_rg] - moving_cost, rg+14+7*to_w_rg);
+                                choices[rg+21+7*to_w_rg] = work_2w[rg][to_w_rg] - moving_cost;
+                                get_max_idx(max_utility, max_index, work_2w[rg][to_w_rg] - moving_cost, rg+21+7*to_w_rg);
                             }   //to_w_rg
 
                         }  //rg
@@ -1888,6 +1916,7 @@ static double estimation(float* params)
                         choices[from_h_rg] = -INFINITY;
 #endif
                         // move from white to blue and live in the same region
+                        // TODO: assuming we only move to blue full, need to add moving to blue partial
                         choices[from_h_rg+7] = work_2b[from_h_rg];
                         get_max_idx(max_utility, max_index, work_2b[from_h_rg], from_h_rg+7);
 
@@ -1895,43 +1924,28 @@ static double estimation(float* params)
                         for (unsigned short to_w_rg = 0; to_w_rg < RG_SIZE; ++to_w_rg)
                         {
                             // stay in white in different work region and live in the same region
-                            choices[from_h_rg+14+7*to_w_rg] = work_2w[from_h_rg][to_w_rg];
-                            get_max_idx(max_utility, max_index, work_2w[from_h_rg][to_w_rg], from_h_rg+14+7*to_w_rg);
+                            choices[from_h_rg+21+7*to_w_rg] = work_2w[from_h_rg][to_w_rg];
+                            get_max_idx(max_utility, max_index, work_2w[from_h_rg][to_w_rg], from_h_rg+21+7*to_w_rg);
                         } // end to_w_rg
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                         {
                             // stayed in white in the same work region and move housing
                             // note: rg stands for the destination housing region, becasue there is no change in work region
-                            choices[rg+14+7*from_w_rg] = nonfired_2w[rg][from_w_rg] - moving_cost;
+                            choices[rg+21+7*from_w_rg] = nonfired_2w[rg][from_w_rg] - moving_cost;
                             get_max_idx(max_utility, max_index, nonfired_2w[rg][from_w_rg] - moving_cost,
-                                    rg+14+7*from_w_rg);
+                                    rg+21+7*from_w_rg);
                         } // end rg
 
                         // stayed in white in the same work region and live in the same region
-                        choices[from_h_rg+14+7*from_w_rg] = nonfired_2w[from_h_rg][from_w_rg];               
-                        get_max_idx(max_utility, max_index, nonfired_2w[from_h_rg][from_w_rg], from_h_rg+14+7*from_w_rg);
-                        if(max_index == from_h_rg+14+7*from_w_rg && t == PERIODS-1)
+                        choices[from_h_rg+21+7*from_w_rg] = nonfired_2w[from_h_rg][from_w_rg];               
+                        get_max_idx(max_utility, max_index, nonfired_2w[from_h_rg][from_w_rg], from_h_rg+21+7*from_w_rg);
+                        if(max_index == from_h_rg+21+7*from_w_rg && t == PERIODS-1)
                         {
                             w_wage_flag = true;
                         }
                     } //end if BLUE
                 } //end if UE
 
-#ifdef SANITY
-                if (sample(I,t) != -1)
-                {
-                    max_index = sample(I,t);
-                    max_utility = choices[max_index];
-                    for (unsigned short st = 0; st < STATE_VECTOR_SIZE; ++st)
-                    {
-                        if (st != max_index)
-                        {
-                            choices[st] = -INFINITY;
-                        }
-                    }
-                }
-                // if sample is unknown we keep the estimated value
-#endif 
                 unsigned short tmp_work_rg;
                 unsigned short tmp_house_rg;
 #ifdef WAGE_SELECTION
@@ -1945,8 +1959,9 @@ static double estimation(float* params)
                     tmp_house_rg = (unsigned short)est_house_info.rem;
                     tmp_work_rg = (unsigned short)est_house_info.quot;
                     // work region 0 = unemployment
-                    // work region 1 = blue
-                    // (work region - 2) = white work region
+                    // work region 1 = blue, full time
+                    // work region 2 = blue, part time
+                    // (work region - 3) = white work region
                 }
 
 #ifdef WAGE_SELECTION
@@ -1963,7 +1978,11 @@ static double estimation(float* params)
                 {
                     printf("Invalid selection moved state from %hu to BLUE\n", from_state);
                 }
-                if (tmp_work_rg > 1 && from_state != WHITE)
+                if (tmp_work_rg == 2 && from_state != BLUE)
+                {
+                    printf("Invalid selection moved state from %hu to BLUE\n", from_state);
+                }
+                if (tmp_work_rg > 2 && from_state != WHITE)
                 {
                     printf("Invalid selection moved state from %hu to WHITE\n", from_state);
                 }
@@ -1976,13 +1995,18 @@ static double estimation(float* params)
                     float current_wage = 0.0f;
                     if (tmp_work_rg == 1)
                     {
-                        // blue
+                        // blue, full
                         current_wage = ((b_wage_flag == false) ? wage_b[tmp_house_rg] : wage_b_non_f[tmp_house_rg])/6.0f;
                     }
-                    else if (tmp_work_rg >= 2)
+                    if (tmp_work_rg == 2)
+                    {
+                        // blue, part
+                        current_wage = ((b_wage_flag == false) ? wage_b[tmp_house_rg] : wage_b_non_f[tmp_house_rg])/6.0f;
+                    }
+                    else if (tmp_work_rg > 2)
                     {
                         // white
-                        current_wage = ((w_wage_flag == false) ? wage_w[tmp_work_rg-2] : wage_w_non_f[tmp_work_rg-2])/6.0f;
+                        current_wage = ((w_wage_flag == false) ? wage_w[tmp_work_rg-3] : wage_w_non_f[tmp_work_rg-3])/6.0f;
                     }
                     printf("%.3f ",  current_wage);
                 }
@@ -2000,65 +2024,27 @@ static double estimation(float* params)
                 }
                 else if (sim_type == WAGE_SIM)
                 {
-                    if (tmp_work_rg == 1 && (tmp_house_rg == 4 || tmp_house_rg == 5)) // BLUE
+                    if ((tmp_work_rg == 1 || tmp_work_rg == 2) && (tmp_house_rg == 4 || tmp_house_rg == 5)) // BLUE
                     {
                         // note: we ignore the difference between non-fired blue and blue
                         total_benefit += 6.0f*expf(rg_const_tmp_b + beta30[tmp_house_rg] + sgma[1]*epsilon_f(draw,I,t,tmp_house_rg,BLUE))*sim_percent; 
                     }
-                    else if (tmp_work_rg > 1 && (tmp_work_rg-2 == 4 || tmp_work_rg-2 == 5)) // WHITE
+                    else if (tmp_work_rg > 2 && (tmp_work_rg-3 == 4 || tmp_work_rg-3 == 5)) // WHITE
                     {
                         // note: we ignore the difference between non-fired white and white
-                        total_benefit += 6.0f*expf(rg_const_tmp_w + beta20[tmp_work_rg-2] + sgma[0]*epsilon_f(draw,I,t,(tmp_work_rg-2),WHITE))*sim_percent;
+                        total_benefit += 6.0f*expf(rg_const_tmp_w + beta20[tmp_work_rg-3] + sgma[0]*epsilon_f(draw,I,t,(tmp_work_rg-3),WHITE))*sim_percent;
                     }
                     // else unemployement
                 }
                 else if (sim_type == TC_SIM)
                 {
-                    if (tmp_work_rg > 1 && !(tmp_work_rg-2 == 0 || tmp_work_rg-2 == 3 || tmp_work_rg-2 == 6))
+                    if (tmp_work_rg > 2 && !(tmp_work_rg-3 == 0 || tmp_work_rg-3 == 3 || tmp_work_rg-3 == 6))
                     {
                         // WHITE, not working in 0, 3 or 6
-                        total_benefit += sim_percent*travel_cost_arr[tmp_house_rg][tmp_work_rg-2]/(1.0f - sim_percent);
+                        total_benefit += sim_percent*travel_cost_arr[tmp_house_rg][tmp_work_rg-3]/(1.0f - sim_percent);
                     }
                 }
 #endif
-
-#ifdef SANITY
-                if (sample(I,t) == -1)
-                {
-                    if (live(I,t) != -1)
-                    {
-                        tmp_house_rg = live(I,t);
-                    }
-                    else
-                    {
-                        // if no info is known house is the estimated one 
-                    }
-
-                    if (occupation(I,t) == UE)
-                    {
-                        tmp_work_rg = 0;
-                    }
-                    else if (occupation(I,t) == BLUE)
-                    {
-                        tmp_work_rg = 1;
-                    }
-                    else if (occupation(I,t) == WHITE)
-                    {
-                        if (work(I,t) != -1)
-                        {
-                            tmp_work_rg = (unsigned short)(work(I,t) + 2);
-                        }
-                        else
-                        {
-                            // if no info is known work region is the estimated one 
-                        }
-                    }
-                    else
-                    {
-                        // if no info is known occupation the estimated one 
-                    }
-                }
-#endif // SANITY
 
                 house_rg_arr[t][draw] = tmp_house_rg;
                 from_h_rg = tmp_house_rg;
@@ -2073,7 +2059,7 @@ static double estimation(float* params)
                     dwage_b = 0;
                     dwage_w = 0;
                 } 
-                else if (tmp_work_rg == 1)
+                else if (tmp_work_rg == 1 || tmp_work_rg == 2)
                 {
                     // work in blue
 #ifndef SIMULATION
@@ -2091,7 +2077,7 @@ static double estimation(float* params)
                 else
                 {
                     // work in white
-                    tmp_work_rg -= 2; // now it is a number: 0-6
+                    tmp_work_rg -= 3; // now it is a number: 0-6
 #ifndef SIMULATION
                     job_arr[t][draw] = WHITE;
 #endif
@@ -2220,27 +2206,6 @@ static double estimation(float* params)
                         // one of the individuals that were treated in the special cases
                         // doing nothing in the last period
                     }
-#ifdef SANITY
-                    if (WAGE > 0.0f)
-                    {
-                        // if there is real data, override estimated one
-                        last_wage[draw] = WAGE;
-                    }
-                    else
-                    {
-                        last_wage[draw] = 0.0f;
-                    }
-                    if (D_MORT == 0 && RENT_MORT > 0)
-                    {
-                        // if there is real data, override estimated one
-                        last_rent[draw] = (float)RENT_MORT;
-                    }
-                    else
-                    {
-                        last_rent[draw] = 0.0f;
-                    }
-#endif // SANITY
-
                 }
                 else if ((t == 7 && I_id == 84) || (t == 6 && I_id == 214) || (t == 1 && I_id == 399) || (t == 3 && (I_id == 640 || I_id == 620)))
                 {
@@ -2337,13 +2302,13 @@ static double estimation(float* params)
                                 // unknown where he live & work in 0
                                 for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                                 {
-                                    if (max_index_arr[t][draw] == 14+rg)
+                                    if (max_index_arr[t][draw] == 21+rg)
                                     {
-                                        p_error[t] += error_c+(1.0f - error_c)*p_bar_arr[14+rg][t];
+                                        p_error[t] += error_c+(1.0f - error_c)*p_bar_arr[21+rg][t];
                                     }
                                     else
                                     {
-                                        p_error[t] += (1.0f - error_c)*p_bar_arr[14+rg][t];
+                                        p_error[t] += (1.0f - error_c)*p_bar_arr[21+rg][t];
                                     }
                                 }
                             }
@@ -2352,19 +2317,19 @@ static double estimation(float* params)
                                 // unknown where he live & work in 2
                                 for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                                 {
-                                    if (max_index_arr[t][draw] == 28+rg)
+                                    if (max_index_arr[t][draw] == 35+rg)
                                     {
-                                        p_error[t] += error_c+(1.0f - error_c)*p_bar_arr[28+rg][t];
+                                        p_error[t] += error_c+(1.0f - error_c)*p_bar_arr[35+rg][t];
                                     }
                                     else
                                     {
-                                        p_error[t] += (1.0f - error_c)*p_bar_arr[28+rg][t];
+                                        p_error[t] += (1.0f - error_c)*p_bar_arr[35+rg][t];
                                     }
                                 }
                             }
-                            else if (work(I,t) == 4)
+                            else if (work(I,t) == 3)
                             {
-                                // unknown where he live & work in 0
+                                // unknown where he live & work in 3
                                 for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                                 {
                                     if (max_index_arr[t][draw] == 42+rg)
@@ -2377,18 +2342,33 @@ static double estimation(float* params)
                                     }
                                 }
                             }
-                            else if (work(I,t) == 6)
+                            else if (work(I,t) == 4)
                             {
-                                // unknown where he live & work in 0
+                                // unknown where he live & work in 4
                                 for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                                 {
-                                    if (max_index_arr[t][draw] == 56+rg)
+                                    if (max_index_arr[t][draw] == 49+rg)
                                     {
-                                        p_error[t] += error_c+(1.0f - error_c)*p_bar_arr[56+rg][t];
+                                        p_error[t] += error_c+(1.0f - error_c)*p_bar_arr[49+rg][t];
                                     }
                                     else
                                     {
-                                        p_error[t] += (1.0f - error_c)*p_bar_arr[56+rg][t];
+                                        p_error[t] += (1.0f - error_c)*p_bar_arr[49+rg][t];
+                                    }
+                                }
+                            }
+                            else if (work(I,t) == 6)
+                            {
+                                // unknown where he live & work in 6
+                                for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
+                                {
+                                    if (max_index_arr[t][draw] == 63+rg)
+                                    {
+                                        p_error[t] += error_c+(1.0f - error_c)*p_bar_arr[63+rg][t];
+                                    }
+                                    else
+                                    {
+                                        p_error[t] += (1.0f - error_c)*p_bar_arr[63+rg][t];
                                     }
                                 }
                             }
@@ -2399,13 +2379,13 @@ static double estimation(float* params)
                                 {
                                     for (unsigned short w_rg = 0; w_rg < RG_SIZE; ++w_rg)
                                     {
-                                        if (max_index_arr[t][draw] == 14+h_rg+7*w_rg)
+                                        if (max_index_arr[t][draw] == 21+h_rg+7*w_rg)
                                         {
-                                            p_error[t] += error_c + (1.0f - error_c)*p_bar_arr[14+h_rg+7*w_rg][t];
+                                            p_error[t] += error_c + (1.0f - error_c)*p_bar_arr[21+h_rg+7*w_rg][t];
                                         }
                                         else
                                         {
-                                            p_error[t] += (1.0f - error_c)*p_bar_arr[14+h_rg+7*w_rg][t];
+                                            p_error[t] += (1.0f - error_c)*p_bar_arr[21+h_rg+7*w_rg][t];
                                         }
                                     }
                                 }
@@ -2426,13 +2406,13 @@ static double estimation(float* params)
                                 }
                                 else
                                 {
-                                    p_error[t] += (1.0f - error_c)*p_bar_arr[live(I,t)+7*rg][t];
+                                    p_error[t] += (1.0f - error_c)*p_bar_arr[live(I,t) + 7*rg][t];
                                 }
                             }
                         }
                         else
                         {
-                            printf("handle_missing_state error(W): work/live contradict sample (I=%hu t=%hu work=%hu live=%hu sample=%hu)\n",  
+                            printf("handle_missing_state error(W): work/live contradict sample (I=%hu t=%hu work=%hu live=%hu sample=%d)\n",  
                                 I, t, work(I,t), live(I,t), sample(I,t));
                         }
                     }
@@ -2456,13 +2436,13 @@ static double estimation(float* params)
                         }
                         else
                         {
-                            printf("handle_missing_state error(UE): live contradict sample (I=%hu t=%hu live=%hu sample=%hu)\n",
+                            printf("handle_missing_state error(UE): live contradict sample (I=%hu t=%hu live=%hu sample=%d)\n",
                                 I, t, live(I,t), sample(I,t));  
                         }
                     }
-                    else if (occupation(I,t) == BLUE)
+                    else if (occupation(I,t) == BLUE && sample(I,t) < 14)
                     {
-                        // work in blue
+                        // work in blue - full
                         if (live(I,t) == -1)
                         {
                             //region of housing is unknown
@@ -2480,10 +2460,34 @@ static double estimation(float* params)
                         }
                         else
                         {
-                            printf("handle_missing_state error(B): live contradict sample (I=%hu t=%hu live=%hu sample=%hu)\n",
+                            printf("handle_missing_state error(B, full): live contradict sample (I=%hu t=%hu live=%hu sample=%d)\n",
                                 I, t, live(I,t), sample(I,t));
                         }
 
+                    }
+                    else if (occupation(I,t) == BLUE && sample(I,t) > 13)
+                    {
+                        // work in blue - partial
+                        if (live(I,t) == -1)
+                        {
+                            //region of housing is unknown
+                            for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
+                            {
+                                if (max_index_arr[t][draw] == 14+rg)
+                                {
+                                    p_error[t] += error_c + (1.0f - error_c)*p_bar_arr[14+rg][t];
+                                }
+                                else
+                                {
+                                    p_error[t] += (1.0f - error_c)*p_bar_arr[14+rg][t];
+                                }
+                            }
+                        }
+                        else
+                        {
+                             printf("handle_missing_state error(B, partial): live contradict sample (I=%hu t=%hu live=%hu sample=%d)\n",
+                                     I, t, live(I,t), sample(I,t));
+                        }
                     }
                     else
                     {
@@ -2710,13 +2714,7 @@ static double estimation(float* params)
     memset(wage_white_rg_count, '\0', sizeof(wage_white_rg_count));
     for (unsigned short I = 0; I < OBSR; ++I)
     {
-        short st = sample(I, PERIODS_arr[I]-1);
-        if (st > 13 && WAGE_arr[I] > 0.0f) // white
-        {
-            wage_white_rg_sum[0][st/7 - 2] += WAGE_arr[I];
-            ++wage_white_rg_count[0][st/7 - 2];
-        }
-        else if (occupation(I, PERIODS_arr[I]-1) == WHITE && work(I, PERIODS_arr[I]-1) != -1 && WAGE_arr[I] > 0.0f)
+        if (occupation(I, PERIODS_arr[I]-1) == WHITE && work(I, PERIODS_arr[I]-1) != -1 && WAGE_arr[I] > 0.0f)
         {
             wage_white_rg_sum[0][work(I, PERIODS_arr[I]-1)] += WAGE_arr[I];
             ++wage_white_rg_count[0][work(I, PERIODS_arr[I]-1)];
@@ -2798,13 +2796,7 @@ static double estimation(float* params)
     memset(wage_blue_rg_count, '\0', sizeof(wage_blue_rg_count));
     for (unsigned short I = 0; I < OBSR; ++I)
     {
-        short st = sample(I, PERIODS_arr[I]-1);
-        if (st > 6 && st < 14 && WAGE_arr[I] > 0.0f) // blue
-        {
-            wage_blue_rg_sum[0][st-7] += WAGE_arr[I];
-            ++wage_blue_rg_count[0][st-7];
-        }
-        else if (occupation(I, PERIODS_arr[I]-1) == BLUE && live(I, PERIODS_arr[I]-1) != -1 && WAGE_arr[I] > 0.0f)
+        if (occupation(I, PERIODS_arr[I]-1) == BLUE && live(I, PERIODS_arr[I]-1) != -1 && WAGE_arr[I] > 0.0f)
         {
             wage_blue_rg_sum[0][live(I, PERIODS_arr[I]-1)] += WAGE_arr[I];
             ++wage_blue_rg_count[0][live(I, PERIODS_arr[I]-1)];
@@ -3110,15 +3102,9 @@ static unsigned short load_dynamic_index(const char* filename, unsigned short* i
         return 0;
     }
 }
-#ifdef WIFE_MODE
-static const char* IND_DATA_FILENAME = "wife_ind_data_3.txt";
-static const char* MOMENTS_FILENAME = "wife_olim_wide_3.txt";
-static const char* WIFE_EDU_FILENAME = "husband_edu.txt"; // this is not a mistake! in "wife mode" the husband is the "wife"
-#else // regular mode
 static const char* IND_DATA_FILENAME = "ind_data_3.txt";
 static const char* MOMENTS_FILENAME = "olim_wide_3.txt";
 static const char* WIFE_EDU_FILENAME = "wife_edu.txt";
-#endif
 static const char* INITIAL_PARAM_FILE = "params.txt";
 static const char* PARAM_INDEX_FILE = "params_index.txt";
 #ifdef SIMULATION
