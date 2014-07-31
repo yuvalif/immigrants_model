@@ -104,7 +104,20 @@ float randn_f_arr[DRAWS_F][OBS][T][RG_SIZE][STATE_SIZE];
 #endif // SIMULATION
 
 #define draw_wage(wage,prob) (rand01() < (prob)) ? (wage) : -INFINITY
+
+inline float draw_blue_wage(float wage, float prob_full, float prob_part)
+{
+    float p = rand01();
+    return (p < prob_full) ? wage : ((p < prob_full + prob_part) ? wage/2.0 : -INFINITY);
+}
+
 #define draw_wage_f(wage,prob) (rand01() < (prob)) ? (wage) : -INFINITY
+
+inline float draw_blue_wage_f(float wage, float prob_full, float prob_part)
+{
+    float p = rand01();
+    return (p < prob_full) ? wage : ((p < prob_full + prob_part) ? wage/2.0 : -INFINITY);
+}
 
 static void init_rand()
 {
@@ -452,6 +465,9 @@ static bool load_moments(const char* filename)
 #endif
                     for (unsigned short t = 0; t < MOMENTS_PERIODS; ++t)
                     {
+                        // fixing data in input file
+                        // /////////////////////////
+                        // moving regions from 1-7 to 0-6
                         if (live(I,t) != -1)
                         {
                             --live(I,t);
@@ -461,37 +477,55 @@ static bool load_moments(const char* filename)
                             --work(I,t);
                         }
 
+                        if (sample(I,t) == -1)
+                        {
+                            if (occupation(I,t) == UE && live(I,t) != -1)
+                            {
+                                sample(I,t) = live(I,t);
+                                printf("line[%hu]: missing status in period = %hu, added = %d\n", I, t, sample(I,t));
+                            }
+                            else if (occupation(I,t) == BLUE && live(I,t) != -1)
+                            {
+                                // TODO: assuming blue in full time
+                                sample(I,t) = live(I,t) + 7;
+                                printf("line[%hu]: missing status in period = %hu, added = %d\n", I, t, sample(I,t));
+                            }
+                            else if (occupation(I,t) == WHITE && live(I,t) != -1 && work(I,t) != -1)
+                            {
+                                sample(I,t) = live(I,t) + (work(I,t) + 3)*7;
+                                printf("line[%hu]: missing status in period = %hu, added = %d\n", I, t, sample(I,t));
+                            }
+                        }
+
 #ifdef SANITY
+                        bool inconsistent = false;
+                        if (occupation(I,t) < -1 || occupation(I,t) > 2)
+                        {
+                            printf("line[%hu]: invalid occupation = %d\n", I, occupation(I,t));
+                            inconsistent = true;
+                        }
+                        if (live(I,t) < -1 || live(I,t) > 6)
+                        {
+                            printf("line[%hu]: invalid housing region = %d\n", I, live(I,t));
+                            inconsistent = true;
+                        }
+                        if (work(I,t) < -1 || work(I,t) > 6)
+                        {
+                            printf("line[%hu]: invalid work region = %d\n", I, work(I,t));
+                            inconsistent = true;
+                        }
+                        if (sample(I,t) < -1 || sample(I,t) > 69)
+                        {
+                            printf("line[%hu]: invalid status = %d\n", I, sample(I,t));
+                            inconsistent = true;
+                        }
                         short st = sample(I,t);
                         if (st != -1)
                         {
-                            bool inconsistent = false;
-                            static const int FIRST_WHITE_VALUE = 21;
-                            // all info must be known
-                            if (occupation(I,t) == -1 || live(I,t) == -1 || (work(I,t) == -1 && st >= FIRST_WHITE_VALUE))
+                            // if status is known occupation and house region must be known
+                            if (occupation(I,t) == -1 || live(I,t) == -1)
                             {
-                                printf("line[%hu]: data missing for period = %hu, status = %d\n", I, t, st);
-                                inconsistent = true;
-                            }
-               
-                            if (occupation(I,t) < -1 || occupation(I,t) > 2)
-                            {
-                                printf("line[%hu]: invalid occupation = %d\n", I, occupation(I,t));
-                                inconsistent = true;
-                            }
-                            if (live(I,t) < -1 || live(I,t) > 6)
-                            {
-                                printf("line[%hu]: invalid housing region = %d\n", I, live(I,t));
-                                inconsistent = true;
-                            }
-                            if (work(I,t) < -1 || work(I,t) > 6)
-                            {
-                                printf("line[%hu]: invalid work region = %d\n", I, work(I,t));
-                                inconsistent = true;
-                            }
-                            if (sample(I,t) < -1 || sample(I,t) > 69)
-                            {
-                                printf("line[%hu]: invalid status = %d\n", I, sample(I,t));
+                                printf("line[%hu]: occupation or housing region data missing for period = %hu", I, t);
                                 inconsistent = true;
                             }
                             
@@ -527,6 +561,13 @@ static bool load_moments(const char* filename)
                                 printf("Work Region: %d Computed Work Region: %d\n", work(I,t), (work_rg > 2) ? work_rg - 3 : -1);
                             }
                         }
+
+                        if (inconsistent)
+                        {
+                            printf("Occupation: %hu\n", occupation(I,t));
+                            printf("Housing Region: %hu\n", live(I,t));
+                            printf("Work Region: %d\n", work(I,t));
+                        }
 #endif // SANITY
                     }
                     ++I;
@@ -556,7 +597,7 @@ static bool load_moments(const char* filename)
     }
 }
 
-const unsigned short int MAX_PARAM_LEN = 156;   //# of parameters
+const unsigned short int MAX_PARAM_LEN = 166;   //# of parameters
 #define set_param_array(param_name,size) float param_name[(size)]; for (j = 0; j < (size); ++i, ++j) param_name[j] = params[i]; 
 #define set_param(param_name) float param_name = params[i]; ++i;
 
@@ -716,11 +757,34 @@ static const unsigned int MARRIED_SIM = 6;
 #endif
 
 // estimation function used inside the optimization process to find the params the find minimum likelihood
-// input: array of MAX_PARAM_LEN (156) parameters
+// input: array of MAX_PARAM_LEN (166) parameters
 // output: likelihood of these params in respect to the individuals' params and the moments
 
 #define RENT_REF_PARAM 1.0
 #define WAGE_REF_PARAM 1.0
+
+/* convert k index to experience
+index   experience (k)
+----------------------
+0       0
+1       0.5
+2       1
+3       1.5
+4       2
+5       2.5
+6       3
+7       4
+8       5
+9       6
+10      7
+11      8
+12      9
+12      10
+12      11
+12      12
+*/
+#define index_to_k(K) ((K) > 6) ? (float)(K) - 3.0 : (float)(K)/2.0
+#define k_to_index(K) ((K) > 9.0) ? 9 : (((K) > 6.0) ? (K) - 3.0 : (K)/2.0)
 
 #ifdef CALC_STDEV
 static double estimation(float* params, FILE *fp)
@@ -736,6 +800,9 @@ static double estimation(float* params, float rent_param, float wage_param)
 static double estimation(float* params)
 #endif
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#pragma GCC diagnostic ignored "-Wunused-variable"
     const float beta = 0.985;  // discount rate
     const float one_by_beta = 1.0f/beta;
     unsigned short i = 0; // index in the input array v
@@ -867,7 +934,7 @@ static double estimation(float* params)
     set_param(psai_w) // t==0 - a new one[95] 
     set_param(psai_b) // t==0 - a new one[96] 
 
-    // Job  offer parameters - blue collar
+    // Job (full time)  offer parameters - blue collar
     set_param_array(lamda30, RG_SIZE) // constant for every region[97...103]
     //float lamda31 = lamda21; // schooling - the same as in white collar
     float lamda32 = lamda22; // unemployment - the same as in white collar
@@ -904,7 +971,14 @@ static double estimation(float* params)
     set_param_array(psi4, RG_SIZE) //married*women age by region[147...153]
 
     set_param(lamda29) // kids w [154]
-    set_param(lamda39) // kids b [155]
+    set_param(lamda39) // kids b full [155]
+    set_param(lamda49) // kids b part [156]
+    set_param(lamda29_1) // women age w [157]
+    set_param(lamda39_1) // women age b full [158]
+    set_param(lamda49_1) // women age b part [159]
+
+#pragma GCC diagnostic push // stop ignoring -Wunused-but-set-variable
+
     float PROB_T1=expf(type1)/(1.0f+(expf(type1)+expf(type2)));  
     float PROB_T2=expf(type2)/(1.0f+(expf(type1)+expf(type2)));
     float PROB_T0=1.0f-PROB_T1-PROB_T2;
@@ -1160,7 +1234,8 @@ static double estimation(float* params)
         const float prob_nonfired_b = 1.0f/(1.0f + expf(TYPE2*ab[1]+TYPE3*ab[2]+(1-TYPE2-TYPE3)*ab[0]));
         const float const_lamda_work_2w = (lamda21_1*SCHOOL1 + lamda21_2*SCHOOL2 + lamda21_3*SCHOOL3) + 
                                             lamda23*AGE+lamda27*TYPE2+lamda28*TYPE3+lamda29*KIDS; //part of the probability of getting job offer in white - page 13
-        const float const_lamda_work_2b = lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda39*KIDS; //part of the probability of getting job offer in blue - page 13
+        const float const_lamda_work_2b_full = lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda39*KIDS; //part of the probability of getting job offer in blue - page 13
+        const float const_lamda_work_2b_part = lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda49*KIDS; //part of the probability of getting job offer in blue - page 13
 #else
         const float prob_nonfired_w = 1.0f;
         const float prob_nonfired_b = 1.0f;
@@ -1169,12 +1244,13 @@ static double estimation(float* params)
                                             beta22*EXP_U+beta23*EXP_U_SQ+beta27*TYPE2+beta28*TYPE3;  //part of the wage equation  white collar- equation 7 page 14
         const float t_const_tmp_b = (beta31_1*SCHOOL1 + beta31_2*SCHOOL2 + beta31_3*SCHOOL3) + 
                                             beta32*EXP_U+beta33*EXP_U_SQ+beta37*TYPE2+beta38*TYPE3;  //part of the wage equation  blue collar- equation 7 page 14
-        const float ret = 65.0f - (float)AGE + 10.0f;
-        const float one_by_beta_pown = powf(one_by_beta, ret);
-        const float terminal = (one_by_beta_pown - 1.0f)/(one_by_beta_pown*(one_by_beta - 1.0f));
 
 // in wage selection there is no emax calculation
 #ifndef WAGE_SELECTION
+
+        const float ret = 65.0f - (float)AGE + 10.0f;
+        const float one_by_beta_pown = powf(one_by_beta, ret);
+        const float terminal = (one_by_beta_pown - 1.0f)/(one_by_beta_pown*(one_by_beta - 1.0f));
 
         for (unsigned short t = T; t > 0; --t)
         {
@@ -1182,33 +1258,44 @@ static double estimation(float* params)
             const unsigned long t_sq = t*t;
             const unsigned short age40 = (((float)AGE + (float)t/2.0f) > 39.5f);
             //part of the probability of getting job offer in white - page 13 (miss:constant by region +come from unemp)
-            const float lamda_work_2w = const_lamda_work_2w+lamda25*t+lamda26*(float)t_sq;
+            const float lamda_work_2w = const_lamda_work_2w+lamda25*t+lamda26*(float)t_sq+lamda29_1*(AGE+T);
             //part of the probability of getting job offer in blue - page 13(miss:constant by region +come from unemp) 
-            const float lamda_work_2b = const_lamda_work_2b+lamda35*t+lamda36*(float)t_sq;
+            const float lamda_work_2b_full = const_lamda_work_2b_full+lamda35*t+lamda36*(float)t_sq+lamda39_1*(AGE+t);
+            const float lamda_work_2b_part = const_lamda_work_2b_part+lamda35*t+lamda36*(float)t_sq+lamda49_1*(AGE+t);
             const float k_const_tmp_w = t_const_tmp_w+beta26*age40;   //part of the wage equation  white collar- equation 7 page 14 (miss:const by region+exp+exp^2)
             const float k_const_tmp_b = t_const_tmp_b+beta36*age40;   //part of the wage equation  blue collar- equation 7 page 14 (miss:const by region+exp+exp^2)
 
             float prob_work_2w[RG_SIZE];
             float prob_ue_2w[RG_SIZE];
-            float prob_work_2b[RG_SIZE];
-            float prob_ue_2b[RG_SIZE];
+            float prob_work_2b_full[RG_SIZE];
+            float prob_work_2b_part[RG_SIZE];
+            float prob_ue_2b_full[RG_SIZE];
+            float prob_ue_2b_part[RG_SIZE];
 
             for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
             {
-                float tmp_lamda = lamda_work_2w + lamda20[rg]; // lamda21*SCHOOL+lamda23*AGE+lamda27*TYPE2+lamda28*TYPE3+lamda25*t+lamda26*t_sq+lamda20[rg]
-                float tmp_exp = expf(tmp_lamda);
-                prob_work_2w[rg] = tmp_exp/(1.0f+tmp_exp); //probability to get job offer in white if come from work
+                const float tmp_lamda_w = lamda_work_2w + lamda20[rg]; // lamda21*SCHOOL+lamda23*AGE+lamda27*TYPE2+lamda28*TYPE3+lamda25*t+lamda26*t_sq+lamda20[rg]
+                float tmp_exp_w = expf(tmp_lamda_w);
+                prob_work_2w[rg] = tmp_exp_w/(1.0+tmp_exp_w); //probability to get job offer in white if come from work
                 // lamda21*SCHOOL+lamda23*AGE+lamda27*TYPE2+lamda28*TYPE3+lamda25*t+lamda26*t_sq+lamda20[rg]+lamda22
-                tmp_exp = expf(tmp_lamda + lamda22);
-                prob_ue_2w[rg] = tmp_exp/(1.0f+tmp_exp); //probability to get job offer in white if come from unemployment
+                tmp_exp_w = expf(tmp_lamda_w + lamda22);
+                prob_ue_2w[rg] = tmp_exp_w/(1.0+tmp_exp_w); //probability to get job offer in white if come from unemployment
 
-                tmp_lamda = lamda_work_2b+lamda30[rg]; // lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda35*t+lamda36*t_sq+lamda30[rg]
-                tmp_exp = expf(tmp_lamda);
-                prob_work_2b[rg] = tmp_exp/(1.0f+tmp_exp); //probability to get job offer in blue if come from work
-
+                const float tmp_lamda_b_full = lamda_work_2b_full+lamda30[rg]; // lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda35*t+lamda36*t_sq+lamda30[rg]
+                float tmp_exp_b_full = expf(tmp_lamda_b_full);
+                const float tmp_lamda_b_part = lamda_work_2b_part+lamda30[rg]; // lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda35*t+lamda36*t_sq+lamda30[rg]
+                float tmp_exp_b_part = expf(tmp_lamda_b_part);
+                prob_work_2b_full[rg] = tmp_exp_b_full/(1.0+tmp_exp_b_full+tmp_exp_b_part); //probability to get job offer in blue full if come from work
                 // lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda35*t+lamda36*t_sq+lamda30[rg]+lamda32
-                tmp_exp = expf(tmp_lamda + lamda32);
-                prob_ue_2b[rg] = tmp_exp/(1.0f+tmp_exp); //probability to get job offer in blue if come from unemployment
+                prob_work_2b_part[rg] = tmp_exp_b_part/(1.0+tmp_exp_b_part+tmp_exp_b_full); //probability to get job offer in blue full if come from work
+                // lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda35*t+lamda36*t_sq+lamda30[rg]+lamda32
+
+                tmp_exp_b_full = expf(tmp_lamda_b_full + lamda32);
+                prob_ue_2b_full[rg] = tmp_exp_b_full/(1.0+tmp_exp_b_full+tmp_exp_b_part); //probability to get job offer in blue full if come from unemployment
+                
+                tmp_exp_b_part = expf(tmp_lamda_b_part + lamda32);
+                prob_ue_2b_part[rg] = tmp_exp_b_part/(1.0f+tmp_exp_b_part+tmp_exp_b_full); //probability to get job offer in blue full if come from unemployment
+
 
                 // adjust rent with R
 #ifdef SIMULATION
@@ -1227,12 +1314,13 @@ static double estimation(float* params)
 #ifdef PERF_TRACE
                 timeval tv = tic();
 #endif
-                const unsigned long k_sq = k*k;
+                const float real_k = index_to_k(k);
+                const float k_sq = real_k*real_k;
 
                 //part of the wage equation  white collar- equation 7 page 14 (adding exp and exp^2 still miss:const by region)
-                const float rg_const_tmp_w = k_const_tmp_w+beta24*k+beta25*(float)k_sq;
+                const float rg_const_tmp_w = k_const_tmp_w+beta24*real_k+beta25*k_sq;
                 //part of the wage equation  blue collar- equation 7 page 14 (adding exp and exp^2 still miss:const by region)
-                const float rg_const_tmp_b = k_const_tmp_b+beta34*k+beta35*(float)k_sq;
+                const float rg_const_tmp_b = k_const_tmp_b+beta34*real_k+beta35*k_sq;
 
                 // initialize to zeros
                 float sum_from_ue_max_utility[RG_SIZE];
@@ -1294,6 +1382,7 @@ static double estimation(float* params)
                             unsigned short D_W_B = get_discrete_index(tmpdb);
                             
                             wage_nonfired_2w[rg][dwage] = draw_wage(wage_w[dwage], prob_nonfired_w); //equal wage if ind wasn't fired  and -inf if was fired  
+                            //TODO currently taking blue full time wage in nonfired
                             float wage_nonfired_2b = draw_wage(wage_b[dwage], prob_nonfired_b); //equal wage if ind wasn't fired  and -inf if was fired
                             if (t == T)
                             {
@@ -1318,9 +1407,9 @@ static double estimation(float* params)
                             nonfired_2b[rg][dwage] = wage_nonfired_2b + taste[rg] - rent[rg] + wife[rg] + choose_b_emax[dwage];
                         } // close dwag                     
                         wage_ue_2w[rg] = draw_wage(wage_w[0], prob_ue_2w[rg]);              //equal wage if ind come fron ue and got an offer and -inf if didn't
-                        float wage_ue_2b = draw_wage(wage_b[0], prob_ue_2b[rg]);              //equal wage if ind come fron ue and got an offer and -inf if didn't
+                        float wage_ue_2b = draw_blue_wage(wage_b[0], prob_ue_2b_full[rg], prob_ue_2b_part[rg]);              //equal wage if ind come fron ue and got an offer and -inf if didn't
                         wage_work_2w[rg] = draw_wage(wage_w[0], prob_work_2w[rg]);          //equal wage if ind come from and got an offer and -inf if didn't
-                        float wage_work_2b = draw_wage(wage_b[0], prob_work_2b[rg]);          //equal wage if ind come from and got an offer and -inf if didn't
+                        float wage_work_2b = draw_blue_wage(wage_b[0], prob_work_2b_full[rg], prob_work_2b_part[rg]);          //equal wage if ind come from and got an offer and -inf if didn't
 
                         // the equivalent to "wage" when UE is chosen
                         choose_ue[rg] =  taste[rg] - rent[rg] + wife[rg] + expf(sgma[2]*tmp3) + choose_ue_emax;
@@ -1597,7 +1686,7 @@ static double estimation(float* params)
             unsigned short from_state = UE;  
             unsigned short from_h_rg = 0;
             unsigned short from_w_rg = 0;
-            unsigned short k = 0;
+            float real_k = 0.0;
 
 
 #ifdef WAGE_SELECTION
@@ -1641,16 +1730,18 @@ static double estimation(float* params)
                 bool w_wage_flag = false;
                 bool b_wage_flag = false;
                 const unsigned short age40 = (((float)AGE + (float)t/2.0f) > 39.5f);
-                const unsigned long k_sq = k*k;
+                const unsigned short k = k_to_index(real_k);
+                const float k_sq = real_k*real_k;
 #ifndef WAGE_SELECTION
                 const unsigned long t_sq = t*t;
-                const float lamda_work_2w = const_lamda_work_2w+lamda25*t+lamda26*(float)t_sq; //part of the probability of getting job offer in white - page 13
-                const float lamda_work_2b = const_lamda_work_2b+lamda35*t+lamda36*(float)t_sq; //part of the probability of getting job offer in blue - page 13
+                const float lamda_work_2w = const_lamda_work_2w+lamda25*t+lamda26*(float)t_sq+lamda29_1*(AGE+t); //part of the probability of getting job offer in white - page 13
+                const float lamda_work_2b_full = const_lamda_work_2b_full+lamda35*t+lamda36*(float)t_sq+lamda39_1*(AGE+t); //part of the probability of getting job offer in blue full - page 13
+                const float lamda_work_2b_part = const_lamda_work_2b_part+lamda35*t+lamda36*(float)t_sq+lamda49_1*(AGE+t); //part of the probability of getting job offer in blue part - page 13
 #endif
                 //part of the wage equation  white collar- equation 7 page 14 (adding exp and exp^2 still miss:const by region)
-                const float rg_const_tmp_w = t_const_tmp_w+beta26*age40+beta24*k+beta25*(float)k_sq;
+                const float rg_const_tmp_w = t_const_tmp_w+beta26*age40+beta24*real_k+beta25*k_sq;
                 //part of the wage equation  blue collar- equation 7 page 14 (adding exp and exp^2 still miss:const by region)
-                const float rg_const_tmp_b = t_const_tmp_b+beta36*age40+beta34*k+beta35*(float)k_sq;
+                const float rg_const_tmp_b = t_const_tmp_b+beta36*age40+beta34*real_k+beta35*k_sq;
                 
                 float work_2b[RG_SIZE];
                 float ue_2b[RG_SIZE];
@@ -1676,28 +1767,39 @@ static double estimation(float* params)
 
                     float prob_work_2w;
                     float prob_ue_2w;
-                    float prob_work_2b;
-                    float prob_ue_2b;
+                    float prob_work_2b_full;
+                    float prob_ue_2b_full;
+                    float prob_work_2b_part;
+                    float prob_ue_2b_part;
 #ifndef WAGE_SELECTION
                     {
-                        float tmp_lamda = lamda_work_2w + lamda20[rg];  // lamda21*SCHOOL+lamda23*AGE+lamda27*TYPE2+lamda28*TYPE3+lamda25*t+lamda26*t_sq+lamda20[rg]
-                        float tmp_exp = expf(tmp_lamda);
-                        prob_work_2w = tmp_exp/(1.0f+tmp_exp);          // probability to get job offer in white if come from work
+                        const float tmp_lamda_w = lamda_work_2w + lamda20[rg];  // lamda21*SCHOOL+lamda23*AGE+lamda27*TYPE2+lamda28*TYPE3+lamda25*t+lamda26*t_sq+lamda20[rg]
+                        float tmp_exp_w = expf(tmp_lamda_w);
+                        prob_work_2w = tmp_exp_w/(1.0+tmp_exp_w);          // probability to get job offer in white if come from work
                         
-                        tmp_exp = expf(tmp_lamda + lamda22);            // lamda21*SCHOOL+lamda23*AGE+lamda27*TYPE2+lamda28*TYPE3+lamda25*t+lamda26*t_sq+lamda20[rg]+lamda22
-                        prob_ue_2w = tmp_exp/(1.0f+tmp_exp);            // probability to get job offer in white if come from unemployment
+                        tmp_exp_w = expf(tmp_lamda_w + lamda22);            // lamda21*SCHOOL+lamda23*AGE+lamda27*TYPE2+lamda28*TYPE3+lamda25*t+lamda26*t_sq+lamda20[rg]+lamda22
+                        prob_ue_2w = tmp_exp_w/(1.0+tmp_exp_w);            // probability to get job offer in white if come from unemployment
                         
-                        tmp_lamda = lamda_work_2b + lamda30[rg];        // lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda35*t+lamda36*t_sq+lamda30[rg]
-                        tmp_exp = expf(tmp_lamda);
-                        prob_work_2b = tmp_exp/(1.0f+tmp_exp);          // probability to get job offer in blue if come from work
+                        const float tmp_lamda_b_full = lamda_work_2b_full + lamda30[rg];        // lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda35*t+lamda36*t_sq+lamda30[rg]
+                        float tmp_exp_b_full = expf(tmp_lamda_b_full);
+                        const float tmp_lamda_b_part = lamda_work_2b_part + lamda30[rg];        // lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda35*t+lamda36*t_sq+lamda30[rg]
+                        float tmp_exp_b_part = expf(tmp_lamda_b_part);
+
+                        prob_work_2b_full = tmp_exp_b_full/(1.0+tmp_exp_b_full+tmp_exp_b_part);          // probability to get job offer in blue if come from work
+                        prob_work_2b_part = tmp_exp_b_part/(1.0+tmp_exp_b_part+tmp_exp_b_full);          // probability to get job offer in blue if come from work
                         
-                        tmp_exp = expf(tmp_lamda + lamda32);            // lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda35*t+lamda36*t_sq+lamda30[rg]+lamda32
-                        prob_ue_2b = tmp_exp/(1.0f+tmp_exp);            // probability to get job offer in blue if come from unemployment
+                        tmp_exp_b_full = expf(tmp_lamda_b_full + lamda32);            // lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda35*t+lamda36*t_sq+lamda30[rg]+lamda32
+                        tmp_exp_b_part = expf(tmp_lamda_b_part + lamda32);            // lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda35*t+lamda36*t_sq+lamda30[rg]+lamda32
+
+                        prob_ue_2b_full = tmp_exp_b_full/(1.0+tmp_exp_b_full+tmp_exp_b_part);            // probability to get job offer in blue if come from unemployment
+                        prob_ue_2b_part = tmp_exp_b_part/(1.0+tmp_exp_b_part+tmp_exp_b_full);            // probability to get job offer in blue if come from unemployment
+
 
                         if (t == 0)
                         {
                             prob_ue_2w = prob_ue_2w*psai_w;
-                            prob_ue_2b = prob_ue_2b*psai_b;
+                            prob_ue_2b_full = prob_ue_2b_full*psai_b;
+                            prob_ue_2b_part = prob_ue_2b_part*psai_b;
                         }
                     }
 #endif // WAGE_SELECTION
@@ -1736,9 +1838,9 @@ static double estimation(float* params)
                     wage_nonfired_2w[rg] = draw_wage_f(wage_w_non_f[rg], prob_nonfired_w);//equal wage if ind wasn't fired  and -inf if was fired
                     float wage_nonfired_2b = draw_wage_f(wage_b_non_f[rg], prob_nonfired_b);//equal wage if ind wasn't fired  and -inf if was fired
                     wage_ue_2w[rg] = draw_wage_f(wage_w[rg], prob_ue_2w);       //equal wage if i come fron ue and got an offer and -inf if didn't
-                    float wage_ue_2b = draw_wage_f(wage_b[rg], prob_ue_2b);       //equal wage if i come fron ue and got an offer and -inf if didn't
+                    float wage_ue_2b = draw_blue_wage_f(wage_b[rg], prob_ue_2b_full, prob_ue_2b_part);       //equal wage if i come fron ue and got an offer and -inf if didn't
                     wage_work_2w[rg] = draw_wage_f(wage_w[rg], prob_work_2w);   //equal wage if ind come from and got an offer and -inf if didn't
-                    float wage_work_2b = draw_wage_f(wage_b[rg], prob_work_2b);   //equal wage if ind come from and got an offer and -inf if didn't
+                    float wage_work_2b = draw_blue_wage_f(wage_b[rg], prob_work_2b_full, prob_work_2b_part);   //equal wage if ind come from and got an offer and -inf if didn't
 
                     float choose_ue_emax = beta*EMAX(t+1,k,rg,0,UE,0);
                     float choose_b_emax_non_f = beta*EMAX(t+1,k+1,rg,0,BLUE,D_W_B[rg]);
@@ -2067,7 +2169,7 @@ static double estimation(float* params)
 #endif
                     from_state = BLUE;
                     // increase experience
-                    ++k;
+                    ++real_k;
                     // in blue house_rg equals work_rg
                     work_rg_arr[t][draw] = tmp_house_rg;
                     from_w_rg = tmp_house_rg;
@@ -2083,7 +2185,7 @@ static double estimation(float* params)
 #endif
                     from_state = WHITE;
                     // increase experience
-                    ++k;
+                    ++real_k;
                     work_rg_arr[t][draw] = tmp_work_rg;
                     from_w_rg = tmp_work_rg;
                     dwage_b = 0;
