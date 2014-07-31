@@ -105,19 +105,24 @@ float randn_f_arr[DRAWS_F][OBS][T][RG_SIZE][STATE_SIZE];
 
 #define draw_wage(wage,prob) (rand01() < (prob)) ? (wage) : -INFINITY
 
-inline float draw_blue_wage(float wage, float prob_full, float prob_part)
+inline float draw_blue_wage(float wage, float prob_full, float prob_part, bool& full)
 {
     float p = rand01();
-    return (p < prob_full) ? wage : ((p < prob_full + prob_part) ? wage/2.0 : -INFINITY);
+    full = false;
+    if (p < prob_full)
+    {
+        full = true;
+        return wage;
+    }
+    else if (p < prob_full + prob_part)
+    {
+        return wage/2.0;
+    }
+    return -INFINITY;
 }
 
 #define draw_wage_f(wage,prob) (rand01() < (prob)) ? (wage) : -INFINITY
-
-inline float draw_blue_wage_f(float wage, float prob_full, float prob_part)
-{
-    float p = rand01();
-    return (p < prob_full) ? wage : ((p < prob_full + prob_part) ? wage/2.0 : -INFINITY);
-}
+#define draw_blue_wage_f(wage, prob_full, prob_part, full) draw_blue_wage(wage, prob_full, prob_part, full)
 
 static void init_rand()
 {
@@ -766,25 +771,35 @@ static const unsigned int MARRIED_SIM = 6;
 /* convert k index to experience
 index   experience (k)
 ----------------------
-0       0
+0       0.0
 1       0.5
-2       1
+2       1.0
 3       1.5
-4       2
+4       2.0
 5       2.5
-6       3
-7       4
-8       5
-9       6
-10      7
-11      8
-12      9
-12      10
-12      11
-12      12
+6       3.0
+6		3.5
+7       4.0
+7		4.5
+8       5.0
+8		5.5
+9       6.0
+9		6.5
+10      7.0
+10		7.5
+11      8.0
+11		8.5
+12      9.0
+12		9.5
+12      10.0
+12		10.5
+12      11.0
+12		11.5
+12      12.0
+12		12.5
 */
-#define index_to_k(K) ((K) > 6) ? (float)(K) - 3.0 : (float)(K)/2.0
-#define k_to_index(K) ((K) > 9.0) ? 9 : (((K) > 6.0) ? (K) - 3.0 : (K)/2.0)
+#define index_to_k(I) ((I) >= 6) ? (float)(I) - 3.0 : (float)(I)/2.0
+#define k_to_index(K) ((K) >= 9.0) ? 12 : (((K) >= 3.0) ? (int)(K) + 3 : (int)(K)*2)
 
 #ifdef CALC_STDEV
 static double estimation(float* params, FILE *fp)
@@ -1347,6 +1362,10 @@ static double estimation(float* params)
                     float taste[RG_SIZE];
                     float wage_b[RG_SIZE];
                     float wage_w[RG_SIZE];
+                    bool ue_2b_full[RG_SIZE];
+                    bool work_2b_full[RG_SIZE];
+                    //TODO: do we need D_WAGE dimension for nonfired_2b full/part flag?
+                    bool nonfired_2b_full[RG_SIZE];
 
                     for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                     {
@@ -1382,8 +1401,7 @@ static double estimation(float* params)
                             unsigned short D_W_B = get_discrete_index(tmpdb);
                             
                             wage_nonfired_2w[rg][dwage] = draw_wage(wage_w[dwage], prob_nonfired_w); //equal wage if ind wasn't fired  and -inf if was fired  
-                            //TODO currently taking blue full time wage in nonfired
-                            float wage_nonfired_2b = draw_wage(wage_b[dwage], prob_nonfired_b); //equal wage if ind wasn't fired  and -inf if was fired
+                            float wage_nonfired_2b = draw_blue_wage(wage_b[dwage], prob_nonfired_b, prob_nonfired_b, nonfired_2b_full[rg]); //equal wage if ind wasn't fired  and -inf if was fired
                             if (t == T)
                             {
                                 choose_ue_emax = 0.0f;//beta*(delta0+delta1*k+delta2*(AGE+t/2.0));
@@ -1407,9 +1425,9 @@ static double estimation(float* params)
                             nonfired_2b[rg][dwage] = wage_nonfired_2b + taste[rg] - rent[rg] + wife[rg] + choose_b_emax[dwage];
                         } // close dwag                     
                         wage_ue_2w[rg] = draw_wage(wage_w[0], prob_ue_2w[rg]);              //equal wage if ind come fron ue and got an offer and -inf if didn't
-                        float wage_ue_2b = draw_blue_wage(wage_b[0], prob_ue_2b_full[rg], prob_ue_2b_part[rg]);              //equal wage if ind come fron ue and got an offer and -inf if didn't
+                        float wage_ue_2b = draw_blue_wage(wage_b[0], prob_ue_2b_full[rg], prob_ue_2b_part[rg], ue_2b_full[rg]); //equal wage if ind come fron ue and got an offer and -inf if didn't
                         wage_work_2w[rg] = draw_wage(wage_w[0], prob_work_2w[rg]);          //equal wage if ind come from and got an offer and -inf if didn't
-                        float wage_work_2b = draw_blue_wage(wage_b[0], prob_work_2b_full[rg], prob_work_2b_part[rg]);          //equal wage if ind come from and got an offer and -inf if didn't
+                        float wage_work_2b = draw_blue_wage(wage_b[0], prob_work_2b_full[rg], prob_work_2b_part[rg], work_2b_full[rg]); //equal wage if ind come from and got an offer and -inf if didn't
 
                         // the equivalent to "wage" when UE is chosen
                         choose_ue[rg] =  taste[rg] - rent[rg] + wife[rg] + expf(sgma[2]*tmp3) + choose_ue_emax;
@@ -1759,6 +1777,9 @@ static double estimation(float* params)
                 float wage_work_2w[RG_SIZE];
                 unsigned short D_W_W[RG_SIZE];
                 unsigned short D_W_B[RG_SIZE];
+                bool ue_2b_full[RG_SIZE];
+                bool work_2b_full[RG_SIZE];
+				bool nonfired_2b_full[RG_SIZE];
 
                 for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                 {
@@ -1767,10 +1788,12 @@ static double estimation(float* params)
 
                     float prob_work_2w;
                     float prob_ue_2w;
-                    float prob_work_2b_full;
+                    // TODO: following 4 vars may be used uninitilized in the draw wage function in wage-selection mode
                     float prob_ue_2b_full;
-                    float prob_work_2b_part;
                     float prob_ue_2b_part;
+                    float prob_work_2b_full;
+                    float prob_work_2b_part;
+
 #ifndef WAGE_SELECTION
                     {
                         const float tmp_lamda_w = lamda_work_2w + lamda20[rg];  // lamda21*SCHOOL+lamda23*AGE+lamda27*TYPE2+lamda28*TYPE3+lamda25*t+lamda26*t_sq+lamda20[rg]
@@ -1836,11 +1859,11 @@ static double estimation(float* params)
                     // sampling the wage for each of the transitions
                     // note: need to check if it is more efficient to calculate the wage on the fly if needed
                     wage_nonfired_2w[rg] = draw_wage_f(wage_w_non_f[rg], prob_nonfired_w);//equal wage if ind wasn't fired  and -inf if was fired
-                    float wage_nonfired_2b = draw_wage_f(wage_b_non_f[rg], prob_nonfired_b);//equal wage if ind wasn't fired  and -inf if was fired
+                    float wage_nonfired_2b = draw_blue_wage_f(wage_b_non_f[rg], prob_nonfired_b, prob_nonfired_b, nonfired_2b_full[rg]);//equal wage if ind wasn't fired  and -inf if was fired
                     wage_ue_2w[rg] = draw_wage_f(wage_w[rg], prob_ue_2w);       //equal wage if i come fron ue and got an offer and -inf if didn't
-                    float wage_ue_2b = draw_blue_wage_f(wage_b[rg], prob_ue_2b_full, prob_ue_2b_part);       //equal wage if i come fron ue and got an offer and -inf if didn't
+                    float wage_ue_2b = draw_blue_wage_f(wage_b[rg], prob_ue_2b_full, prob_ue_2b_part, ue_2b_full[rg]);       //equal wage if i come fron ue and got an offer and -inf if didn't
                     wage_work_2w[rg] = draw_wage_f(wage_w[rg], prob_work_2w);   //equal wage if ind come from and got an offer and -inf if didn't
-                    float wage_work_2b = draw_blue_wage_f(wage_b[rg], prob_work_2b_full, prob_work_2b_part);   //equal wage if ind come from and got an offer and -inf if didn't
+                    float wage_work_2b = draw_blue_wage_f(wage_b[rg], prob_work_2b_full, prob_work_2b_part, work_2b_full[rg]);   //equal wage if ind come from and got an offer and -inf if didn't
 
                     float choose_ue_emax = beta*EMAX(t+1,k,rg,0,UE,0);
                     float choose_b_emax_non_f = beta*EMAX(t+1,k+1,rg,0,BLUE,D_W_B[rg]);
@@ -1877,8 +1900,7 @@ static double estimation(float* params)
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                         {
                             choices[rg] = choose_ue[rg] - moving_cost;
-                            // TODO: assuming we only move to blue full, need to add moving to blue partial
-                            choices[rg+7] = ue_2b[rg] - moving_cost;
+                            choices[ue_2b_full[rg]?rg+7:rg+14] = ue_2b[rg] - moving_cost;
                             // stay in ue and move housing
                             get_max_idx(max_utility, max_index, choose_ue[rg] - moving_cost, rg);
                             // move from ue to blue and move housing
@@ -1900,8 +1922,7 @@ static double estimation(float* params)
                         choices[from_h_rg] = choose_ue[from_h_rg];
                         get_max_idx(max_utility, max_index, choose_ue[from_h_rg], from_h_rg);
                         // move from ue to blue and live in the same region
-                        // TODO: assuming we only move to blue full, need to add moving to blue partial
-                        choices[from_h_rg+7]=ue_2b[from_h_rg];
+                        choices[ue_2b_full[from_h_rg]?from_h_rg+7:from_h_rg+14]=ue_2b[from_h_rg];
                         get_max_idx(max_utility, max_index, ue_2b[from_h_rg], from_h_rg+7);
                         for (unsigned short w_rg = 0; w_rg < RG_SIZE; ++w_rg)
                         {
@@ -1917,8 +1938,8 @@ static double estimation(float* params)
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                         {
                             choices[rg] = choose_ue[rg] - moving_cost;
-                            // TODO: assuming we only move to blue full, need to add moving to blue partial
-                            choices[rg+7] = ue_2b[rg] - moving_cost;
+							// set the value at the right slot in the choices array according to full/part
+                            choices[ue_2b_full[rg]?rg+7:rg+14] = ue_2b[rg] - moving_cost;
                             // stay in ue and move housing
                             get_max_idx(max_utility, max_index, choose_ue[rg] - moving_cost, rg);
                             // move from ue to blue and move housing
@@ -1941,8 +1962,8 @@ static double estimation(float* params)
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                         {
                             choices[rg] = choose_ue[rg] - moving_cost;
-                            // TODO: assuming we only move to blue full, need to add moving to blue partial
-                            choices[rg+7] = work_2b[rg] - moving_cost;
+							// set the value at the right slot in the choices array according to full/part
+                            choices[work_2b_full[rg]?rg+7:rg+14] = work_2b[rg] - moving_cost;
                             // stay in ue and move housing
                             get_max_idx(max_utility, max_index, choose_ue[rg] - moving_cost, rg);
                             // move from ue to blue and move housing
@@ -1967,9 +1988,8 @@ static double estimation(float* params)
 #else
                         choices[from_h_rg] = -INFINITY;
 #endif
-                        // TODO: assuming we stay blue full, need to add moving to blue partial
                         // stay in blue and live in the same region
-                        choices[from_h_rg+7] = nonfired_2b[from_h_rg];
+                        choices[nonfired_2b_full[from_h_rg]?from_h_rg+7:from_h_rg+14] = nonfired_2b[from_h_rg];
                         get_max_idx(max_utility, max_index, nonfired_2b[from_h_rg], from_h_rg+7);
                         if(max_index == from_h_rg+7 && t == PERIODS-1)
                         {
@@ -1989,8 +2009,7 @@ static double estimation(float* params)
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                         {
                             choices[rg] = choose_ue[rg]- moving_cost;
-                            // TODO: assuming we only move to blue full, need to add moving to blue partial
-                            choices[rg+7] = work_2b[rg]- moving_cost;
+                            choices[work_2b_full[rg]?rg+7:rg+7] = work_2b[rg]- moving_cost;
                             // move from white to ue and move housing
                             get_max_idx(max_utility, max_index, choose_ue[rg] - moving_cost, rg);
                             // move from white to blue and move housing
@@ -2018,8 +2037,7 @@ static double estimation(float* params)
                         choices[from_h_rg] = -INFINITY;
 #endif
                         // move from white to blue and live in the same region
-                        // TODO: assuming we only move to blue full, need to add moving to blue partial
-                        choices[from_h_rg+7] = work_2b[from_h_rg];
+                        choices[work_2b_full[from_h_rg]?from_h_rg+7:from_h_rg+14] = work_2b[from_h_rg];
                         get_max_idx(max_utility, max_index, work_2b[from_h_rg], from_h_rg+7);
 
                         // FROM_W_RG
@@ -2032,7 +2050,7 @@ static double estimation(float* params)
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                         {
                             // stayed in white in the same work region and move housing
-                            // note: rg stands for the destination housing region, becasue there is no change in work region
+                            // note: rg stands for the destination housing region, because there is no change in work region
                             choices[rg+21+7*from_w_rg] = nonfired_2w[rg][from_w_rg] - moving_cost;
                             get_max_idx(max_utility, max_index, nonfired_2w[rg][from_w_rg] - moving_cost,
                                     rg+21+7*from_w_rg);
@@ -2136,7 +2154,7 @@ static double estimation(float* params)
                         // note: we ignore the difference between non-fired white and white
                         total_benefit += 6.0f*expf(rg_const_tmp_w + beta20[tmp_work_rg-3] + sgma[0]*epsilon_f(draw,I,t,(tmp_work_rg-3),WHITE))*sim_percent;
                     }
-                    // else unemployement
+                    // else unemployment
                 }
                 else if (sim_type == TC_SIM)
                 {
@@ -2168,8 +2186,8 @@ static double estimation(float* params)
                     job_arr[t][draw] = BLUE;
 #endif
                     from_state = BLUE;
-                    // increase experience
-                    ++real_k;
+                    // increase experience - by 1 for full, by 0.5 for part
+                    real_k += ((tmp_work_rg == 1) ? 1.0 : 0.5);
                     // in blue house_rg equals work_rg
                     work_rg_arr[t][draw] = tmp_house_rg;
                     from_w_rg = tmp_house_rg;
