@@ -71,7 +71,8 @@ const unsigned int OBS          = OBSR*TYPE_SIZE;   // individual multiplay by n
 const unsigned int DRAWS        = 30;               // draws for emax
 const unsigned int RG_SIZE      = 7;                // # of regions
 const unsigned int TC_SIZE      = 3;                // travel cost
-const unsigned int STATE_SIZE   = 3;                // # of states: w,b,ue
+const unsigned int STATE_SIZE   = 3;                // # of states: white, blue, unemployed
+const unsigned int ALL_STATE_SIZE   = 4;            // # of states: white, blue full, blue part, unemployed
 #ifdef SIMULATION
 const unsigned int BASE_DRAWS_F = 1000;
 const unsigned int TYPE_0_OF_1000 = BASE_DRAWS_F*0.085;
@@ -1120,9 +1121,9 @@ static double estimation(float* params)
     unsigned long work_rg_notype_distribution[RG_SIZE][T]={{0}};
     unsigned long work_rg_notype_distribution_count[T]={0};
     // occupation distribution
-    unsigned long occ_distribution[TYPE_SIZE][STATE_SIZE][T]={{{0}}};
+    unsigned long occ_distribution[TYPE_SIZE][ALL_STATE_SIZE][T]={{{0}}};
     unsigned long occ_distribution_count[TYPE_SIZE][T]={{0}};
-    unsigned long occ_notype_distribution[STATE_SIZE][T]={{0}};
+    unsigned long occ_notype_distribution[ALL_STATE_SIZE][T]={{0}};
     unsigned long occ_notype_distribution_count[T]={0};
     // house-work region distribution
     unsigned long house_work_rg_distribution[TYPE_SIZE][RG_SIZE][RG_SIZE]={{{0}}};
@@ -1701,6 +1702,7 @@ static double estimation(float* params)
 #endif
             unsigned short dwage_b = 0;
             unsigned short dwage_w = 0;
+            unsigned short blue_state = 0;
             unsigned short from_state = UE;  
             unsigned short from_h_rg = 0;
             unsigned short from_w_rg = 0;
@@ -1708,6 +1710,7 @@ static double estimation(float* params)
 
 
 #ifdef WAGE_SELECTION
+            // TODO: what about blue part time?
             from_state = (unsigned short)((float)STATE_SIZE*(rand()/(RAND_MAX + 1.0f)));
             from_h_rg = (unsigned short)((float)RG_SIZE*(rand()/(RAND_MAX + 1.0f)));
             if (from_state == WHITE)
@@ -2096,11 +2099,11 @@ static double estimation(float* params)
                 }
                 if (tmp_work_rg == 1 && from_state != BLUE)
                 {
-                    printf("Invalid selection moved state from %hu to BLUE\n", from_state);
+                    printf("Invalid selection moved state from %hu to BLUE FULL\n", from_state);
                 }
                 if (tmp_work_rg == 2 && from_state != BLUE)
                 {
-                    printf("Invalid selection moved state from %hu to BLUE\n", from_state);
+                    printf("Invalid selection moved state from %hu to BLUE PART\n", from_state);
                 }
                 if (tmp_work_rg > 2 && from_state != WHITE)
                 {
@@ -2185,6 +2188,8 @@ static double estimation(float* params)
 #ifndef SIMULATION
                     job_arr[t][draw] = BLUE;
 #endif
+                    // 0 blue full, 1 blue part
+                    blue_state = ((tmp_work_rg == 1) ? 0 : 1);
                     from_state = BLUE;
                     // increase experience - by 1 for full, by 0.5 for part
                     real_k += ((tmp_work_rg == 1) ? 1.0 : 0.5);
@@ -2238,9 +2243,9 @@ static double estimation(float* params)
                     ++house_notype_distribution[from_h_rg][t];
                     ++house_notype_distribution_count[t];
                 
-                    ++occ_distribution[I_type][from_state][t];
+                    ++occ_distribution[I_type][from_state+blue_state][t];
                     ++occ_distribution_count[I_type][t];
-                    ++occ_notype_distribution[from_state][t];
+                    ++occ_notype_distribution[from_state+blue_state][t];
                     ++occ_notype_distribution_count[t];
                 }
 #endif
@@ -2298,6 +2303,7 @@ static double estimation(float* params)
                         }
                         else if (from_state == BLUE)
                         {
+                            // TODO: handle blue part/full wage
                             last_wage[draw] = ((b_wage_flag == false) ? wage_b[house_rg_arr[PERIODS-1][draw]] : wage_b_non_f[house_rg_arr[PERIODS-1][draw]])/6.0f;
 #ifdef TRACE
 #ifdef SIMULATION
@@ -2732,9 +2738,9 @@ static double estimation(float* params)
 
     ////////////////////// Occupation Distribution /////////////////////
     printf("\n\noccupation distribution:\n\n");
-    printf("----------------------------------------------------------------\n");
-    printf(" T |   count   |     UE      |      WHITE     |       BLUE     |\n");
-    printf("----------------------------------------------------------------\n");
+    printf("---------------------------------------------------------------------------------\n");
+    printf(" T |   count   |     UE      |      WHITE     |   BLUE (FULL)  |   BLUE (PART)  |\n");
+    printf("---------------------------------------------------------------------------------\n");
 
 #ifdef SIMULATION
     const unsigned short max_T = ((sim_type !=0) ? T : MOMENTS_PERIODS);
@@ -2745,14 +2751,14 @@ static double estimation(float* params)
     for (unsigned short t = 0; t < max_T ; ++t)
     {
         printf("%hu\t%lu\t", t, occ_notype_distribution_count[t]);
-        for (unsigned short st = 0; st < STATE_SIZE; ++st)
+        for (unsigned short st = 0; st < ALL_STATE_SIZE; ++st)
         {
             printf("%f\t", (float)occ_notype_distribution[st][t]/(float)occ_notype_distribution_count[t]);
         }
 
         printf("\n");
     }
-    printf("\n----------------------------------------------------------\n");
+    printf("---------------------------------------------------------------------------------\n");
     memset(occ_distribution_count, '\0', sizeof(occ_distribution_count));
     memset(occ_distribution, '\0', sizeof(occ_distribution));
     for (unsigned short I = 0; I < OBSR; ++I)
@@ -2762,8 +2768,9 @@ static double estimation(float* params)
         {
             if (occupation(I,t) > -1)
             {
+                const short work_rg = sample(I,t)/7;
                 ++occ_distribution_count[0][t];
-                ++occ_distribution[0][occupation(I,t)][t];
+                ++occ_distribution[0][(work_rg == 0) ? UE : ((work_rg == 1) ? BLUE : ((work_rg == 2) ? BLUE+1 : WHITE))][t];
             }
         }
     }
@@ -2771,7 +2778,7 @@ static double estimation(float* params)
     for (unsigned short t = 0; t < MOMENTS_PERIODS ; ++t)
     {
         printf("%hu\t%lu\t", t, occ_distribution_count[0][t]);
-        for (unsigned st = 0; st < STATE_SIZE; ++st)
+        for (unsigned st = 0; st < ALL_STATE_SIZE; ++st)
         {
             if (occ_distribution_count[0][t] > 0)
             {
