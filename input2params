@@ -1,9 +1,9 @@
-#!/bin/csh
+#!/bin/bash
 
-if ($#argv != 1) then
+if [ "$#" -ne 1 ]; then
     echo "usage: ./input2params <input file>"
     exit 0
-endif
+fi
 
 echo backup existing params.txt...
 cp params.txt params.txt.`date +%d_%m_%y.%H_%M`
@@ -11,3 +11,4 @@ cp params.txt params.txt.`date +%d_%m_%y.%H_%M`
 echo generating new params.txt from $1...
 
 cat $1 | awk '{if (NR>1) print NR-2, $1}' > params.txt
+
