@@ -409,9 +409,12 @@ static bool load_wife_edu(const char* filename)
     }
 }
 
-const unsigned short  UE    = 0;
-const unsigned short  BLUE  = 2;
-const unsigned short  WHITE = 1;
+const unsigned short UE    = 0;
+const unsigned short BLUE  = 2;
+const unsigned short WHITE = 1;
+
+const unsigned short FULL  = 0;
+const unsigned short PART  = 1;
 
 const unsigned short MOMENTS_PERIODS = 12;
 
@@ -981,7 +984,7 @@ static double estimation(float* params)
 
     set_param_array(R, RG_SIZE) //rent by area [119...125]
     
-    set_param_array(psi1, RG_SIZE) //wpmen Married by region[126...132]
+    set_param_array(psi1, RG_SIZE) //women Married by region[126...132]
     set_param_array(psi2, RG_SIZE) //women education by region[133...139]
     set_param_array(psi3, RG_SIZE) //married*kids by region[140...146]
     set_param_array(psi4, RG_SIZE) //married*women age by region[147...153]
@@ -992,6 +995,8 @@ static double estimation(float* params)
     set_param(lamda29_1) // women age w [157]
     set_param(lamda39_1) // women age b full [158]
     set_param(lamda49_1) // women age b part [159]
+
+    set_param(alfa3) // return for leisure at unemployment, 0.5*alfa3 is return for leisure at part time [160]
 
 #pragma GCC diagnostic push // stop ignoring -Wunused-but-set-variable
 
@@ -1145,12 +1150,12 @@ static double estimation(float* params)
     memset(wage_white_notype_rg_sum, '\0', sizeof(wage_white_notype_rg_sum));
     unsigned long wage_white_notype_rg_count[RG_SIZE] = {0};
     // average blue wage per region
-    float wage_blue_rg_sum[TYPE_SIZE][RG_SIZE];
+    float wage_blue_rg_sum[TYPE_SIZE][RG_SIZE][2];
     memset(wage_blue_rg_sum, '\0', sizeof(wage_blue_rg_sum));
-    unsigned long wage_blue_rg_count[TYPE_SIZE][RG_SIZE]={{0}};
-    float wage_blue_rg_notype_sum[RG_SIZE];
+    unsigned long wage_blue_rg_count[TYPE_SIZE][RG_SIZE][2]={{{0}}};
+    float wage_blue_rg_notype_sum[RG_SIZE][2];
     memset(wage_blue_rg_notype_sum, '\0', sizeof(wage_blue_rg_notype_sum));
-    unsigned long wage_blue_rg_notype_count[RG_SIZE]={0};
+    unsigned long wage_blue_rg_notype_count[RG_SIZE][2]={{0}};
     // average rent
     float rent_sum[TYPE_SIZE];
     memset(rent_sum, '\0', sizeof(rent_sum));
@@ -1164,11 +1169,11 @@ static double estimation(float* params)
     float wage_white_notype_sum = 0.0f;
     unsigned long wage_white_notype_count = 0;
     // average blue wage
-    float wage_blue_sum[TYPE_SIZE];
+    float wage_blue_sum[TYPE_SIZE][2];
     memset(wage_blue_sum, '\0', sizeof(wage_blue_sum));
-    unsigned long wage_blue_count[TYPE_SIZE]={0};
-    float wage_blue_notype_sum = 0.0f;
-    unsigned long wage_blue_notype_count = 0;
+    unsigned long wage_blue_count[TYPE_SIZE][2]={{0}};
+    float wage_blue_notype_sum[2] = {0.0f, 0.0f};
+    unsigned long wage_blue_notype_count[2]={0};
 #endif
     unsigned long counter_true = 0;
     unsigned long counter_false = 0;
@@ -1401,8 +1406,9 @@ static double estimation(float* params)
                             unsigned short D_W_W = get_discrete_index(tmpdw);
                             unsigned short D_W_B = get_discrete_index(tmpdb);
                             
-                            wage_nonfired_2w[rg][dwage] = draw_wage(wage_w[dwage], prob_nonfired_w); //equal wage if ind wasn't fired  and -inf if was fired  
+                            wage_nonfired_2w[rg][dwage] = draw_wage(wage_w[dwage], prob_nonfired_w);            //equal wage if ind wasn't fired  and -inf if was fired  
                             float wage_nonfired_2b = draw_blue_wage(wage_b[dwage], prob_nonfired_b, prob_nonfired_b, nonfired_2b_full[rg]); //equal wage if ind wasn't fired  and -inf if was fired
+                            wage_nonfired_2b += (nonfired_2b_full[rg] == false ? alfa3/2.0 : 0.0);             // add part time alfa3 if needed
                             if (t == T)
                             {
                                 choose_ue_emax = 0.0f;//beta*(delta0+delta1*k+delta2*(AGE+t/2.0));
@@ -1424,14 +1430,17 @@ static double estimation(float* params)
                             }
 
                             nonfired_2b[rg][dwage] = wage_nonfired_2b + taste[rg] - rent[rg] + wife[rg] + choose_b_emax[dwage];
-                        } // close dwag                     
-                        wage_ue_2w[rg] = draw_wage(wage_w[0], prob_ue_2w[rg]);              //equal wage if ind come fron ue and got an offer and -inf if didn't
-                        float wage_ue_2b = draw_blue_wage(wage_b[0], prob_ue_2b_full[rg], prob_ue_2b_part[rg], ue_2b_full[rg]); //equal wage if ind come fron ue and got an offer and -inf if didn't
-                        wage_work_2w[rg] = draw_wage(wage_w[0], prob_work_2w[rg]);          //equal wage if ind come from and got an offer and -inf if didn't
-                        float wage_work_2b = draw_blue_wage(wage_b[0], prob_work_2b_full[rg], prob_work_2b_part[rg], work_2b_full[rg]); //equal wage if ind come from and got an offer and -inf if didn't
+                        } // close dwag             
+
+                        wage_ue_2w[rg] = draw_wage(wage_w[0], prob_ue_2w[rg]);          // equal wage if ind come fron ue and got an offer and -inf if didn't
+                        float wage_ue_2b = draw_blue_wage(wage_b[0], prob_ue_2b_full[rg], prob_ue_2b_part[rg], ue_2b_full[rg]); // equal wage if ind come fron ue and got an offer and -inf if didn't
+                        wage_ue_2b += (ue_2b_full[rg] == false ? alfa3/2.0 : 0.0);              // add part time alfa3 if needed
+                        wage_work_2w[rg] = draw_wage(wage_w[0], prob_work_2w[rg]);      // equal wage if ind come from and got an offer and -inf if didn't
+                        float wage_work_2b = draw_blue_wage(wage_b[0], prob_work_2b_full[rg], prob_work_2b_part[rg], work_2b_full[rg]); // equal wage if ind come from and got an offer and -inf if didn't
+                        wage_work_2b += (work_2b_full[rg] == false ? alfa3/2.0 : 0.0);          // add part time alfa3 if needed
 
                         // the equivalent to "wage" when UE is chosen
-                        choose_ue[rg] =  taste[rg] - rent[rg] + wife[rg] + expf(sgma[2]*tmp3) + choose_ue_emax;
+                        choose_ue[rg] =  taste[rg] - rent[rg] + wife[rg] + expf(sgma[2]*tmp3) + alfa3 + choose_ue_emax;
                         float choose_ue_move = choose_ue[rg] - moving_cost;
 
                         float tmp = taste[rg] - rent[rg] + wife[rg] + choose_b_emax[0];
@@ -1861,12 +1870,15 @@ static double estimation(float* params)
 
                     // sampling the wage for each of the transitions
                     // note: need to check if it is more efficient to calculate the wage on the fly if needed
-                    wage_nonfired_2w[rg] = draw_wage_f(wage_w_non_f[rg], prob_nonfired_w);//equal wage if ind wasn't fired  and -inf if was fired
+                    wage_nonfired_2w[rg] = draw_wage_f(wage_w_non_f[rg], prob_nonfired_w);          //equal wage if ind wasn't fired  and -inf if was fired
                     float wage_nonfired_2b = draw_blue_wage_f(wage_b_non_f[rg], prob_nonfired_b, prob_nonfired_b, nonfired_2b_full[rg]);//equal wage if ind wasn't fired  and -inf if was fired
+                    wage_nonfired_2b += (nonfired_2b_full[rg] == false ? alfa3/2.0 : 0.0);         // add part time alfa3 if needed
                     wage_ue_2w[rg] = draw_wage_f(wage_w[rg], prob_ue_2w);       //equal wage if i come fron ue and got an offer and -inf if didn't
                     float wage_ue_2b = draw_blue_wage_f(wage_b[rg], prob_ue_2b_full, prob_ue_2b_part, ue_2b_full[rg]);       //equal wage if i come fron ue and got an offer and -inf if didn't
+                    wage_ue_2b += (ue_2b_full[rg] == false ? alfa3/2.0 : 0.0);             // add part time alfa3 if needed
                     wage_work_2w[rg] = draw_wage_f(wage_w[rg], prob_work_2w);   //equal wage if ind come from and got an offer and -inf if didn't
                     float wage_work_2b = draw_blue_wage_f(wage_b[rg], prob_work_2b_full, prob_work_2b_part, work_2b_full[rg]);   //equal wage if ind come from and got an offer and -inf if didn't
+                    wage_work_2b += (work_2b_full[rg] == false ? alfa3/2.0 : 0.0);             // add part time alfa3 if needed
 
                     float choose_ue_emax = beta*EMAX(t+1,k,rg,0,UE,0);
                     float choose_b_emax_non_f = beta*EMAX(t+1,k+1,rg,0,BLUE,D_W_B[rg]);
@@ -1880,7 +1892,7 @@ static double estimation(float* params)
                     }
 
                     // the equivalent to "wage" when UE is chosen
-                    choose_ue[rg] =  taste[rg] - rent[rg] + wife[rg] + expf(sgma[2]*epsilon_f(draw,I,t,from_h_rg,UE)) + choose_ue_emax;
+                    choose_ue[rg] =  taste[rg] - rent[rg] + wife[rg] + expf(sgma[2]*epsilon_f(draw,I,t,from_h_rg,UE)) + alfa3 + choose_ue_emax;
                     if (t == 0)
                     {
                         choose_ue[rg] += alfa1[rg];
@@ -2310,14 +2322,14 @@ static double estimation(float* params)
                             if (IND_FILTER==1)
 #endif
                             {
-                                wage_blue_rg_sum[I_type][from_h_rg] += last_wage[draw];
-                                ++wage_blue_rg_count[I_type][from_h_rg];
-                                wage_blue_rg_notype_sum[from_h_rg] += last_wage[draw];
-                                ++wage_blue_rg_notype_count[from_h_rg];
-                                wage_blue_sum[I_type] += last_wage[draw];
-                                ++wage_blue_count[I_type];
-                                wage_blue_notype_sum += last_wage[draw];
-                                ++wage_blue_notype_count;
+                                wage_blue_rg_sum[I_type][from_h_rg][blue_state] += last_wage[draw];
+                                ++wage_blue_rg_count[I_type][from_h_rg][blue_state];
+                                wage_blue_rg_notype_sum[from_h_rg][blue_state] += last_wage[draw];
+                                ++wage_blue_rg_notype_count[from_h_rg][blue_state];
+                                wage_blue_sum[I_type][blue_state] += last_wage[draw];
+                                ++wage_blue_count[I_type][blue_state];
+                                wage_blue_notype_sum[blue_state] += last_wage[draw];
+                                ++wage_blue_notype_count[blue_state];
                             }
 #endif
                         }
@@ -2874,8 +2886,8 @@ static double estimation(float* params)
         }
     }
     
-    ////////////////////// Last Blue Wage  /////////////////////
-    printf("\n\naverage blue wage in last period:\n\n");
+    ////////////////////// Last Blue Wage Full /////////////////////
+    printf("\n\naverage blue (full time) wage in last period:\n\n");
     printf("------------------------------------------------------------------------------------------------------------------------------------\n");
     printf(" ty |      1       |       2       |       3       |       4       |       5       |       6       |       7       |    average    |\n");
     printf("------------------------------------------------------------------------------------------------------------------------------------\n");
@@ -2888,9 +2900,9 @@ static double estimation(float* params)
         {
             if (wage_blue_rg_count[ty][rg] > 0)
             {
-                printf("%.3f\t", wage_blue_rg_sum[ty][rg]/(float)wage_blue_rg_count[ty][rg]);
-                sum_count += wage_blue_rg_count[ty][rg];
-                sum_wage += wage_blue_rg_sum[ty][rg];
+                printf("%.4f\t", wage_blue_rg_sum[ty][rg][FULL]/(float)wage_blue_rg_count[ty][rg][FULL]);
+                sum_count += wage_blue_rg_count[ty][rg][FULL];
+                sum_wage += wage_blue_rg_sum[ty][rg][FULL];
             }
             else
             {
@@ -2899,7 +2911,7 @@ static double estimation(float* params)
         }
         if (sum_count > 0)
         {
-            printf("%.3f\n", sum_wage/(float)sum_count);
+            printf("%.4f\n", sum_wage/(float)sum_count);
         }
         else
         {
@@ -2911,22 +2923,23 @@ static double estimation(float* params)
     printf("avg\t");
     for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
     {
-        printf("%.3f\t",  wage_blue_rg_notype_sum[rg]/(float)wage_blue_rg_notype_count[rg]);
+        printf("%.4f\t",  wage_blue_rg_notype_sum[rg][FULL]/(float)wage_blue_rg_notype_count[rg][FULL]);
     }
     
     // average across all regions
-    printf("%.3f\t", wage_blue_notype_sum/(float)wage_blue_notype_count);
+    printf("%.4f\t", wage_blue_notype_sum[FULL]/(float)wage_blue_notype_count[FULL]);
 
     // real values
     printf("\n------------------------------------------------------------------------------------------------------------------------------------\n");
-    memset(wage_blue_rg_sum, '\0', sizeof(wage_blue_rg_sum));
-    memset(wage_blue_rg_count, '\0', sizeof(wage_blue_rg_count));
+    float real_wage_blue_rg_sum[TYPE_SIZE][RG_SIZE];
+    memset(real_wage_blue_rg_sum, '\0', sizeof(real_wage_blue_rg_sum));
+    unsigned long real_wage_blue_rg_count[TYPE_SIZE][RG_SIZE]={{0}};
     for (unsigned short I = 0; I < OBSR; ++I)
     {
-        if (occupation(I, PERIODS_arr[I]-1) == BLUE && live(I, PERIODS_arr[I]-1) != -1 && WAGE_arr[I] > 0.0f)
+        if (occupation(I, PERIODS_arr[I]-1) == BLUE && live(I, PERIODS_arr[I]-1) != -1 && WAGE_arr[I] > 0.0f && sample(I,PERIODS_arr[I]-1)/7 == 1)
         {
-            wage_blue_rg_sum[0][live(I, PERIODS_arr[I]-1)] += WAGE_arr[I];
-            ++wage_blue_rg_count[0][live(I, PERIODS_arr[I]-1)];
+            real_wage_blue_rg_sum[0][live(I, PERIODS_arr[I]-1)] += WAGE_arr[I];
+            ++real_wage_blue_rg_count[0][live(I, PERIODS_arr[I]-1)];
         }
     }
     {
@@ -2935,11 +2948,11 @@ static double estimation(float* params)
         float sum_wage = 0.0;
         for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
         {
-            if (wage_blue_rg_count[0][rg] > 0)
+            if (real_wage_blue_rg_count[0][rg] > 0)
             {
-                printf("%.3f\t", wage_blue_rg_sum[0][rg]/(float)wage_blue_rg_count[0][rg]);
-                sum_count += wage_blue_rg_count[0][rg];
-                sum_wage += wage_blue_rg_sum[0][rg];
+                printf("%.4f\t", real_wage_blue_rg_sum[0][rg]/(float)real_wage_blue_rg_count[0][rg]);
+                sum_count += real_wage_blue_rg_count[0][rg];
+                sum_wage += real_wage_blue_rg_sum[0][rg];
             }
             else
             {
@@ -2948,7 +2961,89 @@ static double estimation(float* params)
         }
         if (sum_count > 0)
         {
-            printf("%.3f\n", sum_wage/(float)sum_count);
+            printf("%.4f\n", sum_wage/(float)sum_count);
+        }
+        else
+        {
+            printf("--------\n");
+        }
+    }
+
+    ////////////////////// Last Blue Wage Part /////////////////////
+    printf("\n\naverage blue (part time) wage in last period:\n\n");
+    printf("------------------------------------------------------------------------------------------------------------------------------------\n");
+    printf(" ty |      1       |       2       |       3       |       4       |       5       |       6       |       7       |    average    |\n");
+    printf("------------------------------------------------------------------------------------------------------------------------------------\n");
+    for (unsigned short ty = 0; ty < TYPE_SIZE; ++ty)
+    {
+        printf("%hu\t", ty);
+        unsigned long sum_count = 0;
+        float sum_wage = 0.0f;
+        for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
+        {
+            if (wage_blue_rg_count[ty][rg] > 0)
+            {
+                printf("%.4f\t", wage_blue_rg_sum[ty][rg][PART]/(float)wage_blue_rg_count[ty][rg][PART]);
+                sum_count += wage_blue_rg_count[ty][rg][PART];
+                sum_wage += wage_blue_rg_sum[ty][rg][PART];
+            }
+            else
+            {
+                printf("--------\t");
+            }
+        }
+        if (sum_count > 0)
+        {
+            printf("%.4f\n", sum_wage/(float)sum_count);
+        }
+        else
+        {
+            printf("--------\n");
+        }
+    }
+    // average across types per region
+    printf("------------------------------------------------------------------------------------------------------------------------------------\n");
+    printf("avg\t");
+    for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
+    {
+        printf("%.4f\t",  wage_blue_rg_notype_sum[rg][PART]/(float)wage_blue_rg_notype_count[rg][PART]);
+    }
+    
+    // average across all regions
+    printf("%.4f\t", wage_blue_notype_sum[PART]/(float)wage_blue_notype_count[PART]);
+
+    // real values
+    printf("\n------------------------------------------------------------------------------------------------------------------------------------\n");
+    memset(real_wage_blue_rg_sum, '\0', sizeof(real_wage_blue_rg_sum));
+    memset(real_wage_blue_rg_count, '\0', sizeof(real_wage_blue_rg_count));
+    for (unsigned short I = 0; I < OBSR; ++I)
+    {
+        if (occupation(I, PERIODS_arr[I]-1) == BLUE && live(I, PERIODS_arr[I]-1) != -1 && WAGE_arr[I] > 0.0f && sample(I,PERIODS_arr[I]-1)/7 == 2)
+        {
+            real_wage_blue_rg_sum[0][live(I, PERIODS_arr[I]-1)] += WAGE_arr[I];
+            ++real_wage_blue_rg_count[0][live(I, PERIODS_arr[I]-1)];
+        }
+    }
+    {
+        printf("real\t");
+        unsigned long sum_count = 0;
+        float sum_wage = 0.0;
+        for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
+        {
+            if (real_wage_blue_rg_count[0][rg] > 0)
+            {
+                printf("%.4f\t", real_wage_blue_rg_sum[0][rg]/(float)real_wage_blue_rg_count[0][rg]);
+                sum_count += real_wage_blue_rg_count[0][rg];
+                sum_wage += real_wage_blue_rg_sum[0][rg];
+            }
+            else
+            {
+                printf("--------\t");
+            }
+        }
+        if (sum_count > 0)
+        {
+            printf("%.4f\n", sum_wage/(float)sum_count);
         }
         else
         {
