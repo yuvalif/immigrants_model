@@ -1,4 +1,4 @@
-    /*
+/*
 by Osnat Lifshitz, Chemi Gotlibovski (2009)
 */
 
@@ -105,7 +105,7 @@ float randn_f_arr[DRAWS_F][OBS][T][RG_SIZE][STATE_SIZE];
 #endif // SIMULATION
 
 #define draw_wage(wage,prob) (rand01() < (prob)) ? (wage) : -INFINITY
-
+//TODO what value to put in "full" in case of no work?
 inline float draw_blue_wage(float wage, float prob_full, float prob_part, bool& full)
 {
     float p = rand01();
@@ -113,10 +113,14 @@ inline float draw_blue_wage(float wage, float prob_full, float prob_part, bool& 
     if (p < prob_full)
     {
         full = true;
+	// TODO: DEBUG
+	//printf("full time: %f < %f\n", p, prob_full);
         return wage;
     }
     else if (p < prob_full + prob_part)
     {
+	// TODO: DEBUG
+	//printf("part time: %f < %f + %f\n", p, prob_full, prob_part);
         return wage/2.0;
     }
     return -INFINITY;
@@ -543,7 +547,7 @@ static bool load_moments(const char* filename)
                             short work_rg = (short)house_info.quot;
                             // work region 0 = unemployment
                             // work region 1 = blue, full time
-                            // work region 2 = blue, part timer
+                            // work region 2 = blue, part time
                             // (work region - 3) = white work region
                             if (live(I,t) != -1 && live(I,t) != house_rg)
                             {
@@ -1283,6 +1287,8 @@ static double estimation(float* params)
             //part of the probability of getting job offer in blue - page 13(miss:constant by region +come from unemp) 
             const float lamda_work_2b_full = const_lamda_work_2b_full+lamda35*t+lamda36*(float)t_sq+lamda39_1*(AGE+t);
             const float lamda_work_2b_part = const_lamda_work_2b_part+lamda35*t+lamda36*(float)t_sq+lamda49_1*(AGE+t);
+	    // TODO DEBUG
+	    //printf("lamda39 = %f, lamda39_1 = %f, lamda49 = %f, lamda49_1 = %f\n", lamda39, lamda39_1, lamda49, lamda49_1);
             const float k_const_tmp_w = t_const_tmp_w+beta26*age40;   //part of the wage equation  white collar- equation 7 page 14 (miss:const by region+exp+exp^2)
             const float k_const_tmp_b = t_const_tmp_b+beta36*age40;   //part of the wage equation  blue collar- equation 7 page 14 (miss:const by region+exp+exp^2)
 
@@ -1306,17 +1312,18 @@ static double estimation(float* params)
                 float tmp_exp_b_full = expf(tmp_lamda_b_full);
                 const float tmp_lamda_b_part = lamda_work_2b_part+lamda30[rg]; // lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda35*t+lamda36*t_sq+lamda30[rg]
                 float tmp_exp_b_part = expf(tmp_lamda_b_part);
+
                 prob_work_2b_full[rg] = tmp_exp_b_full/(1.0+tmp_exp_b_full+tmp_exp_b_part); //probability to get job offer in blue full if come from work
                 // lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda35*t+lamda36*t_sq+lamda30[rg]+lamda32
                 prob_work_2b_part[rg] = tmp_exp_b_part/(1.0+tmp_exp_b_part+tmp_exp_b_full); //probability to get job offer in blue full if come from work
+		//printf("prob_work_2b_full[%d] = %f prob_work_2b_part = %f\n", rg, prob_work_2b_full[rg], prob_work_2b_part[rg]);
                 // lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda35*t+lamda36*t_sq+lamda30[rg]+lamda32
 
                 tmp_exp_b_full = expf(tmp_lamda_b_full + lamda32);
-                prob_ue_2b_full[rg] = tmp_exp_b_full/(1.0+tmp_exp_b_full+tmp_exp_b_part); //probability to get job offer in blue full if come from unemployment
-                
                 tmp_exp_b_part = expf(tmp_lamda_b_part + lamda32);
+                prob_ue_2b_full[rg] = tmp_exp_b_full/(1.0+tmp_exp_b_full+tmp_exp_b_part); //probability to get job offer in blue full if come from unemployment
                 prob_ue_2b_part[rg] = tmp_exp_b_part/(1.0f+tmp_exp_b_part+tmp_exp_b_full); //probability to get job offer in blue full if come from unemployment
-
+		//printf("prob_ue_2b_full[%d] = %f prob_ue_2b_part = %f\n", rg, prob_ue_2b_full[rg], prob_ue_2b_part[rg]);
 
                 // adjust rent with R
 #ifdef SIMULATION
@@ -1407,7 +1414,8 @@ static double estimation(float* params)
                             unsigned short D_W_B = get_discrete_index(tmpdb);
                             
                             wage_nonfired_2w[rg][dwage] = draw_wage(wage_w[dwage], prob_nonfired_w);            //equal wage if ind wasn't fired  and -inf if was fired  
-                            float wage_nonfired_2b = draw_blue_wage(wage_b[dwage], prob_nonfired_b, prob_nonfired_b, nonfired_2b_full[rg]); //equal wage if ind wasn't fired  and -inf if was fired
+			    // TODO assuming nonfired part time is not possible
+                            float wage_nonfired_2b = draw_blue_wage(wage_b[dwage], prob_nonfired_b, 0, nonfired_2b_full[rg]); //equal wage if ind wasn't fired  and -inf if was fired
                             wage_nonfired_2b += (nonfired_2b_full[rg] == false ? alfa3/2.0 : 0.0);             // add part time alfa3 if needed
                             if (t == T)
                             {
@@ -1434,10 +1442,10 @@ static double estimation(float* params)
 
                         wage_ue_2w[rg] = draw_wage(wage_w[0], prob_ue_2w[rg]);          // equal wage if ind come fron ue and got an offer and -inf if didn't
                         float wage_ue_2b = draw_blue_wage(wage_b[0], prob_ue_2b_full[rg], prob_ue_2b_part[rg], ue_2b_full[rg]); // equal wage if ind come fron ue and got an offer and -inf if didn't
-                        wage_ue_2b += (ue_2b_full[rg] == false ? alfa3/2.0 : 0.0);              // add part time alfa3 if needed
+                        wage_ue_2b += (ue_2b_full[rg] == false ? alfa3/2.0 : 0.0);      // add part time alfa3 if needed
                         wage_work_2w[rg] = draw_wage(wage_w[0], prob_work_2w[rg]);      // equal wage if ind come from and got an offer and -inf if didn't
                         float wage_work_2b = draw_blue_wage(wage_b[0], prob_work_2b_full[rg], prob_work_2b_part[rg], work_2b_full[rg]); // equal wage if ind come from and got an offer and -inf if didn't
-                        wage_work_2b += (work_2b_full[rg] == false ? alfa3/2.0 : 0.0);          // add part time alfa3 if needed
+                        wage_work_2b += (work_2b_full[rg] == false ? alfa3/2.0 : 0.0);  // add part time alfa3 if needed
 
                         // the equivalent to "wage" when UE is chosen
                         choose_ue[rg] =  taste[rg] - rent[rg] + wife[rg] + expf(sgma[2]*tmp3) + alfa3 + choose_ue_emax;
@@ -1791,7 +1799,7 @@ static double estimation(float* params)
                 unsigned short D_W_B[RG_SIZE];
                 bool ue_2b_full[RG_SIZE];
                 bool work_2b_full[RG_SIZE];
-				bool nonfired_2b_full[RG_SIZE];
+		bool nonfired_2b_full[RG_SIZE];
 
                 for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                 {
@@ -1828,7 +1836,6 @@ static double estimation(float* params)
 
                         prob_ue_2b_full = tmp_exp_b_full/(1.0+tmp_exp_b_full+tmp_exp_b_part);            // probability to get job offer in blue if come from unemployment
                         prob_ue_2b_part = tmp_exp_b_part/(1.0+tmp_exp_b_part+tmp_exp_b_full);            // probability to get job offer in blue if come from unemployment
-
 
                         if (t == 0)
                         {
@@ -1869,7 +1876,6 @@ static double estimation(float* params)
                     D_W_B[rg] = get_discrete_index(tmpdb);
 
                     // sampling the wage for each of the transitions
-                    // note: need to check if it is more efficient to calculate the wage on the fly if needed
                     wage_nonfired_2w[rg] = draw_wage_f(wage_w_non_f[rg], prob_nonfired_w);          //equal wage if ind wasn't fired  and -inf if was fired
                     float wage_nonfired_2b = draw_blue_wage_f(wage_b_non_f[rg], prob_nonfired_b, prob_nonfired_b, nonfired_2b_full[rg]);//equal wage if ind wasn't fired  and -inf if was fired
                     wage_nonfired_2b += (nonfired_2b_full[rg] == false ? alfa3/2.0 : 0.0);         // add part time alfa3 if needed

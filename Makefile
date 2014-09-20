@@ -38,7 +38,7 @@ estimation: estimation.cpp
 
 estimation_debug: estimation.cpp
 	@echo Building $@...;
-	@$(CC) $(CWARNING_FLAGS) -DTRACE_LOAD -DTRACE -DINFO -Wall -g -O0 -o $@ $<;
+	@$(CC) $(CWARNING_FLAGS) -DTRACE -DINFO -Wall -g -O0 -o $@ $<;
 
 estimation_sim: estimation.cpp
 	@echo Building $@...;
