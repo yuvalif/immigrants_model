@@ -1387,7 +1387,8 @@ static double estimation(float* params)
                     float choose_w_emax[RG_SIZE][RG_SIZE][D_WAGE];
                     float ue_2b[RG_SIZE];
                     float work_2b[RG_SIZE];
-                    float nonfired_2b[RG_SIZE][D_WAGE];
+                    float nonfired_2b_full[RG_SIZE][D_WAGE];
+                    float nonfired_2b_part[RG_SIZE][D_WAGE];
                     float wage_nonfired_2w[RG_SIZE][D_WAGE];
                     float wage_work_2w[RG_SIZE];
                     float wage_ue_2w[RG_SIZE];
@@ -1396,8 +1397,6 @@ static double estimation(float* params)
                     float wage_w[RG_SIZE];
                     bool ue_2b_full[RG_SIZE];
                     bool work_2b_full[RG_SIZE];
-                    //TODO: do we need D_WAGE dimension for nonfired_2b full/part flag?
-                    bool nonfired_2b_full[RG_SIZE];
 
                     for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                     {
@@ -1433,9 +1432,8 @@ static double estimation(float* params)
                             unsigned short D_W_B = get_discrete_index(tmpdb);
                             
                             wage_nonfired_2w[rg][dwage] = draw_wage(wage_w[dwage], prob_nonfired_w);            //equal wage if ind wasn't fired  and -inf if was fired  
-			                // TODO assuming nonfired part time is not possible
-                            float wage_nonfired_2b = draw_blue_wage(wage_b[dwage], prob_nonfired_b, 0, nonfired_2b_full[rg]); //equal wage if ind wasn't fired  and -inf if was fired
-                            wage_nonfired_2b += (nonfired_2b_full[rg] == false ? alfa3/2.0 : 0.0);             // add part time alfa3 if needed
+                            float wage_nonfired_2b_full = draw_wage(wage_b[dwage], prob_nonfired_b); //equal wage if ind wasn't fired  and -inf if was fired
+                            float wage_nonfired_2b_part = draw_wage(wage_b[dwage]/2.0, prob_nonfired_b) + alfa3/2.0; //equal wage if ind wasn't fired  and -inf if was fired
                             if (t == T)
                             {
                                 choose_ue_emax = 0.0f;//beta*(delta0+delta1*k+delta2*(AGE+t/2.0));
@@ -1456,7 +1454,8 @@ static double estimation(float* params)
                                 }
                             }
 
-                            nonfired_2b[rg][dwage] = wage_nonfired_2b + taste[rg] - rent[rg] + husband[rg] + choose_b_emax[dwage];
+                            nonfired_2b_full[rg][dwage] = wage_nonfired_2b_full + taste[rg] - rent[rg] + husband[rg] + choose_b_emax[dwage];
+                            nonfired_2b_part[rg][dwage] = wage_nonfired_2b_part + taste[rg] - rent[rg] + husband[rg] + choose_b_emax[dwage];
                         } // close dwage             
 
                         wage_ue_2w[rg] = draw_wage(wage_w[0], prob_ue_2w[rg]);          // equal wage if ind come fron ue and got an offer and -inf if didn't
@@ -1542,7 +1541,8 @@ static double estimation(float* params)
                             {
                                 from_b_max_utility_arr[dwage] = from_b_max_utility_h;
                                 // stay in blue and live in the same region
-                                get_max(from_b_max_utility_arr[dwage], nonfired_2b[h_rg][dwage]);
+                                get_max(from_b_max_utility_arr[dwage], nonfired_2b_full[h_rg][dwage]);
+                                get_max(from_b_max_utility_arr[dwage], nonfired_2b_part[h_rg][dwage]);
                             }
                             // move from white to ue and live in the same region
                             get_max(from_w_max_utility_h, choose_ue[h_rg]);
@@ -1605,10 +1605,14 @@ static double estimation(float* params)
 
                             for (unsigned short dwage = 0; dwage < D_WAGE; ++dwage)
                             {
-                                nonfired_2b[h_rg][dwage] *= (1.0f+terminal);
+                                nonfired_2b_full[h_rg][dwage] *= (1.0f+terminal);
+                                nonfired_2b_part[h_rg][dwage] *= (1.0f+terminal);
+                                get_max(from_b_max_utility_arr[dwage], nonfired_2b_full[h_rg][dwage]);
+                                get_max(from_b_max_utility_arr[dwage], nonfired_2b_part[h_rg][dwage]);
                                 from_b_max_utility_arr[dwage] = from_b_max_utility_h;
                                 // stay in blue and live in the same region
-                                get_max(from_b_max_utility_arr[dwage], nonfired_2b[h_rg][dwage]);
+                                get_max(from_b_max_utility_arr[dwage], nonfired_2b_full[h_rg][dwage]);
+                                get_max(from_b_max_utility_arr[dwage], nonfired_2b_part[h_rg][dwage]);
                             }
                             // move from white to ue and live in the same region
                             get_max(from_w_max_utility_h, choose_ue[h_rg]);
@@ -1736,7 +1740,7 @@ static double estimation(float* params)
 #endif
             unsigned short dwage_b = 0;
             unsigned short dwage_w = 0;
-            unsigned short blue_state = 0;
+            unsigned short blue_state = 0; // 0 blue full, 1 blue part
             unsigned short from_state = UE;  
             unsigned short from_h_rg = 0;
             unsigned short from_w_rg = 0;
@@ -1784,7 +1788,8 @@ static double estimation(float* params)
                 
                 float work_2b[RG_SIZE];
                 float ue_2b[RG_SIZE];
-                float nonfired_2b[RG_SIZE];
+                float nonfired_2b_full[RG_SIZE];
+                float nonfired_2b_part[RG_SIZE];
                 float ue_2w[RG_SIZE][RG_SIZE];
                 float work_2w[RG_SIZE][RG_SIZE];
                 float choose_ue[RG_SIZE];
@@ -1801,7 +1806,6 @@ static double estimation(float* params)
                 unsigned short D_W_B[RG_SIZE];
                 bool ue_2b_full[RG_SIZE];
                 bool work_2b_full[RG_SIZE];
-		        bool nonfired_2b_full[RG_SIZE];
 
                 for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                 {
@@ -1875,9 +1879,8 @@ static double estimation(float* params)
                     // sampling the wage for each of the transitions
                     
                     wage_nonfired_2w[rg] = draw_wage_f(wage_w_non_f[rg], prob_nonfired_w);          //equal wage if ind wasn't fired  and -inf if was fired
-			        // TODO assuming nonfired part time is not possible
-                    float wage_nonfired_2b = draw_blue_wage_f(wage_b_non_f[rg], prob_nonfired_b, 0, nonfired_2b_full[rg]);  //equal wage if ind wasn't fired  and -inf if was fired
-                    wage_nonfired_2b += (nonfired_2b_full[rg] == false ? alfa3/2.0 : 0.0);          // add part time alfa3 if needed
+                    float wage_nonfired_2b_full = draw_wage_f(wage_b_non_f[rg], prob_nonfired_b);  //equal wage if ind wasn't fired  and -inf if was fired
+                    float wage_nonfired_2b_part = draw_wage_f(wage_b_non_f[rg]/2.0, prob_nonfired_b) + alfa3/2.0;  //equal wage if ind wasn't fired  and -inf if was fired
                     wage_ue_2w[rg] = draw_wage_f(wage_w[rg], prob_ue_2w);                           //equal wage if i come fron ue and got an offer and -inf if didn't
                     float wage_ue_2b = draw_blue_wage_f(wage_b[rg], prob_ue_2b_full, prob_ue_2b_part, ue_2b_full[rg]);      //equal wage if i come fron ue and got an offer and -inf if didn't
                     wage_ue_2b += (ue_2b_full[rg] == false ? alfa3/2.0 : 0.0);                      // add part time alfa3 if needed
@@ -1900,7 +1903,8 @@ static double estimation(float* params)
                     }
                     ue_2b[rg] = wage_ue_2b + taste_rent_husband + choose_b_emax;
                     work_2b[rg] = wage_work_2b + taste_rent_husband + choose_b_emax;
-                    nonfired_2b[rg] = wage_nonfired_2b + taste_rent_husband + choose_b_emax_non_f;                  
+                    nonfired_2b_full[rg] = wage_nonfired_2b_full + taste_rent_husband + choose_b_emax_non_f;                  
+                    nonfired_2b_part[rg] = wage_nonfired_2b_part + taste_rent_husband + choose_b_emax_non_f;                  
                     
                 } //end rg
 
@@ -1959,7 +1963,20 @@ static double estimation(float* params)
                         else
                         {
                             // stay in same region
-                            choices[nonfired_2b_full[rg]?rg+7:rg+14] = nonfired_2b[rg];
+                            if (blue_state == 0)
+                            {
+                                // full
+                                choices[rg+7] = nonfired_2b_full[rg];
+                            }
+                            else if (blue_state == 1)
+                            {
+                                // part
+                                choices[rg+14] = nonfired_2b_part[rg];
+                            }
+                            else
+                            {
+                                assert(0);
+                            }
                         }
                         // move to white
                         for (unsigned short w_rg = 0; w_rg < RG_SIZE; ++w_rg)
