@@ -186,7 +186,7 @@ unsigned short REP2_arr[OBS];      // republic 2 at USSR
 unsigned short REP3_arr[OBS];      // republic 3 at USSR
 unsigned short TYPE2_arr[OBS];     // dummy that get 1 of individual is type 2
 unsigned short TYPE3_arr[OBS];     // dummy that get 1 of individual is type 2
-unsigned short WIFE_EDU_arr[OBS];  // wife education array
+unsigned short HUSBAND_EDU_arr[OBS];  // husband education array
 
 // loading from file to global variables
 static bool load_individuals(const char* filename)
@@ -355,7 +355,7 @@ static bool load_future_intrest(const char* filename)
 #endif // SIMULATION
 
 // loading from file to global variables
-static bool load_wife_edu(const char* filename)
+static bool load_husband_edu(const char* filename)
 {
     const int COLUMN_NUMBER = 1;
 
@@ -373,19 +373,19 @@ static bool load_wife_edu(const char* filename)
         {
             if (fgets(line, LINE_MAX, fp) != 0)
             {
-                col_num = sscanf(line, "%hu", &(WIFE_EDU_arr[I]));
+                col_num = sscanf(line, "%hu", &(HUSBAND_EDU_arr[I]));
                 if (col_num != COLUMN_NUMBER)
                 {
                     printf("wrong format in file %s number of columns: %d \n", filename, col_num);
                     printf("line[%hu]: %s\n", I, line);
-                    printf("format: WIFE_EDU\n");
+                    printf("format: HUSBAND_EDU\n");
                     fclose(fp);
                     return false;
                 } 
                 else
                 {
 #ifdef TRACE_LOAD
-                    printf("line[%hu]: %hu\n", I, WIFE_EDU_arr[I]);
+                    printf("line[%hu]: %hu\n", I, HUSBAND_EDU_arr[I]);
 #endif
                     ++I;
                 }
@@ -402,7 +402,7 @@ static bool load_wife_edu(const char* filename)
     } 
     else
     {
-        printf("failed to open wife education file %s\n", filename);
+        printf("failed to open husband education file %s\n", filename);
         return false;
     }
 }
@@ -859,9 +859,6 @@ static double estimation(float* params, float rent_param, float wage_param)
 static double estimation(float* params)
 #endif
 {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
-#pragma GCC diagnostic ignored "-Wunused-variable"
     const float beta = 0.985;  // discount rate
     const float one_by_beta = 1.0/beta;
     unsigned short i = 0; // index in the input array v
@@ -932,6 +929,9 @@ static double estimation(float* params)
     {
         beta20[j] = params[i]/10.0f;
     }
+    // regions 1,5,6 must have same value
+    beta20[5] = beta20[1];
+    beta20[6] = beta20[1];
     float beta21_1 = params[i]/100.0f; ++i;// schooling [48]
     float beta21_2 = params[i]/100.0f; ++i;// schooling [49]
     float beta21_3 = params[i]/100.0f; ++i;// schooling [50]
@@ -1037,16 +1037,15 @@ static double estimation(float* params)
     set_param(lamda49_1) // women age b part [159]
 
     set_param(alfa3) // return for leisure at unemployment, 0.5*alfa3 is return for leisure at part time [160]
+    set_param(alfa20) // hustband's education influence on moving cost [161]
 
-#pragma GCC diagnostic push // stop ignoring -Wunused-but-set-variable
-
-    float PROB_T1=expf(type1)/(1.0f+(expf(type1)+expf(type2)));  
-    float PROB_T2=expf(type2)/(1.0f+(expf(type1)+expf(type2)));
-    float PROB_T0=1.0f-PROB_T1-PROB_T2;
+    float PROB_T1=expf(type1)/(1.0+(expf(type1)+expf(type2)));  
+    float PROB_T2=expf(type2)/(1.0+(expf(type1)+expf(type2)));
+    float PROB_T0=1.0-PROB_T1-PROB_T2;
     // P_W_ERROR[0] = 0, P(x<P_W_ERROR[1]) = 10%, P(x<P_W_ERROR[2]) = 30%, P(x<P_W_ERROR[3]) = 50%, P(x<P_W_ERROR[4]) = 70%, P(x<P_W_ERROR[5]) = 90%
-    static const float P_W_ERROR[D_WAGE] = {0.0f, -1.281551f, -0.524401f, 0.0f, 0.524401f, 1.281551f};
+    static const float P_W_ERROR[D_WAGE] = {0.0, -1.281551, -0.524401, 0.0, 0.524401, 1.281551};
     // P(x<P_W_ERROR_RNG[1]) = 20%, P(x<P_W_ERROR_RNG[2]) = 40%, P(x<P_W_ERROR_RNG[3]) = 60%, P(x<P_W_ERROR_RNG[4]) = 80%
-    static const float P_W_ERROR_RNG[D_WAGE] = {0.0f, -0.841621f, -0.253347f, 0.253347f, 0.841621f, 0.0f};
+    static const float P_W_ERROR_RNG[D_WAGE] = {0.0, -0.841621, -0.253347, 0.253347, 0.841621, 0.0};
     // tc1 - tc12,tc13,tc45 // tc0 - tc01,tc02,tc34
     // tc2 - tc15,tc14,tc16,tc17,tc25,tc26,tc27,tc34,tc35,tc36,tc37,yc46,tc47,tc56,tc57,tc67
     // tc3 - tc23,tc24  // tc2 - tc12,tc13,tc23
@@ -1217,11 +1216,10 @@ static double estimation(float* params)
 #endif
     unsigned long counter_true = 0;
     unsigned long counter_false = 0;
-////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-// The Program Start Here
-//////////////////////////////////////////////////////////////////////////////////  
-//////////////////////////////////////////////////////////////////////////////////  
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    // The Program Start Here
+    //////////////////////////////////////////////////////////////////////////////////  
 
     // string likelihood per individual    
     double like_arr[OBS];
@@ -1256,23 +1254,23 @@ static double estimation(float* params)
         const unsigned short    REP3 = REP3_arr[I];
         const unsigned short    TYPE2 = TYPE2_arr[I];
         const unsigned short    TYPE3 = TYPE3_arr[I];
-        const unsigned short    WIFE_EDU = WIFE_EDU_arr[I];
+        const unsigned short    HUSBAND_EDU = HUSBAND_EDU_arr[I];
 #ifdef SIMULATION
         const unsigned short    IND_FILTER =  (sim_type == MARRIED_SIM) ? IND_FILTER_arr[I] : 1;
 #endif
         const float rent_for_all_regions = gama1*M+gama2*KIDS+gama3*TYPE2+gama4*TYPE3; //global rent without gama0 by region
 
-        const float moving_cost = TYPE2*alfa2[1]+TYPE3*alfa2[2]+(1-TYPE2-TYPE3)*alfa2[0];
+        const float moving_cost = TYPE2*alfa2[1]+TYPE3*alfa2[2]+(1-TYPE2-TYPE3)*alfa2[0] + alfa20*HUSBAND_EDU;
         float const_taste[RG_SIZE];
         float rent[RG_SIZE];
-        float wife[RG_SIZE];
+        float husband[RG_SIZE];
         float original_rent[RG_SIZE];
         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
         {
             const_taste[rg] = teta0[rg]+teta1[rg]*REP1+teta2[rg]*REP2+teta3[rg]*REP3; //taste for housing in a specific region - equation 5 page 13
             // define const taste, move the final calculation into draws
             rent[rg] = 6.0f*expf(gama0[rg]+rent_for_all_regions)*RENT_REF_PARAM; // full cost of housing rent/mor - equation 6
-            wife[rg] = psi1[rg]*M + psi2[rg]*M*WIFE_EDU + psi3[rg]*M*KIDS + psi4[rg]*M*AGE;
+            husband[rg] = psi1[rg]*M + psi2[rg]*M*HUSBAND_EDU + psi3[rg]*M*KIDS + psi4[rg]*M*AGE;
 #ifdef SIMULATION
             if (sim_type == RENT_SIM)
             {
@@ -1458,8 +1456,8 @@ static double estimation(float* params)
                                 }
                             }
 
-                            nonfired_2b[rg][dwage] = wage_nonfired_2b + taste[rg] - rent[rg] + wife[rg] + choose_b_emax[dwage];
-                        } // close dwag             
+                            nonfired_2b[rg][dwage] = wage_nonfired_2b + taste[rg] - rent[rg] + husband[rg] + choose_b_emax[dwage];
+                        } // close dwage             
 
                         wage_ue_2w[rg] = draw_wage(wage_w[0], prob_ue_2w[rg]);          // equal wage if ind come fron ue and got an offer and -inf if didn't
                         float wage_ue_2b = draw_blue_wage(wage_b[0], prob_ue_2b_full[rg], prob_ue_2b_part[rg], ue_2b_full[rg]); // equal wage if ind come fron ue and got an offer and -inf if didn't
@@ -1469,10 +1467,10 @@ static double estimation(float* params)
                         wage_work_2b += (work_2b_full[rg] == false ? alfa3/2.0 : 0.0);  // add part time alfa3 if needed
 
                         // the equivalent to "wage" when UE is chosen
-                        choose_ue[rg] =  taste[rg] - rent[rg] + wife[rg] + expf(sgma[2]*tmp3) + alfa3 + choose_ue_emax;
+                        choose_ue[rg] =  taste[rg] - rent[rg] + husband[rg] + expf(sgma[2]*tmp3) + alfa3 + choose_ue_emax;
                         float choose_ue_move = choose_ue[rg] - moving_cost;
 
-                        float tmp = taste[rg] - rent[rg] + wife[rg] + choose_b_emax[0];
+                        float tmp = taste[rg] - rent[rg] + husband[rg] + choose_b_emax[0];
                         ue_2b[rg] = wage_ue_2b + tmp;
                         work_2b[rg] = wage_work_2b + tmp;
 
@@ -1498,13 +1496,13 @@ static double estimation(float* params)
                     {
                         for (unsigned short w_rg = 0; w_rg < RG_SIZE; ++w_rg)
                         {
-                            float tmp = taste[h_rg] - rent[h_rg] + wife[h_rg] - travel_cost(h_rg,w_rg) + choose_w_emax[h_rg][w_rg][0];
+                            float tmp = taste[h_rg] - rent[h_rg] + husband[h_rg] - travel_cost(h_rg,w_rg) + choose_w_emax[h_rg][w_rg][0];
                             ue_2w[h_rg][w_rg] = wage_ue_2w[w_rg] + tmp;
                             work_2w[h_rg][w_rg] = wage_work_2w[w_rg] + tmp;
                             for (unsigned short dwage = 0; dwage < D_WAGE; ++dwage)
                             {
                                 nonfired_2w[h_rg][w_rg][dwage] = 
-                                    wage_nonfired_2w[w_rg][dwage] + taste[h_rg] - rent[h_rg] + wife[h_rg] - travel_cost(h_rg,w_rg) + choose_w_emax[h_rg][w_rg][dwage];
+                                wage_nonfired_2w[w_rg][dwage] + taste[h_rg] - rent[h_rg] + husband[h_rg] - travel_cost(h_rg,w_rg) + choose_w_emax[h_rg][w_rg][dwage];
                             }   
                             // move from ue to white and move housing
                             get_max(from_ue_max_utility, ue_2w[h_rg][w_rg] - moving_cost);
@@ -1887,23 +1885,22 @@ static double estimation(float* params)
                     float wage_work_2b = draw_blue_wage_f(wage_b[rg], prob_work_2b_full, prob_work_2b_part, work_2b_full[rg]);  //equal wage if ind come from and got an offer and -inf if didn't
                     wage_work_2b += (work_2b_full[rg] == false ? alfa3/2.0 : 0.0);                  // add part time alfa3 if needed
 
-                    // TODO: make emax non zero
-                    const float choose_ue_emax = 0.0; //beta*EMAX(t+1,k,rg,0,UE,0);
-                    const float choose_b_emax_non_f = 0.0; //beta*EMAX(t+1,k+1,rg,0,BLUE,D_W_B[rg]);
-                    const float choose_b_emax = 0.0; //beta*EMAX(t+1,k+1,rg,0,BLUE,0);
+                    const float choose_ue_emax = beta*EMAX(t+1,k,rg,0,UE,0);
+                    const float choose_b_emax_non_f = beta*EMAX(t+1,k+1,rg,0,BLUE,D_W_B[rg]);
+                    const float choose_b_emax = beta*EMAX(t+1,k+1,rg,0,BLUE,0);
 
-                    const float taste_rent_wife = taste[rg] - rent[rg] + wife[rg];
+                    const float taste_rent_husband = taste[rg] - rent[rg] + husband[rg];
                     
                     // the equivalent to "wage" when UE is chosen
-                    choose_ue[rg] =  taste_rent_wife + expf(sgma[2]*epsilon_f(draw,I,t,from_h_rg,UE)) + alfa3 + choose_ue_emax;
+                    choose_ue[rg] =  taste_rent_husband + expf(sgma[2]*epsilon_f(draw,I,t,from_h_rg,UE)) + alfa3 + choose_ue_emax;
                     if (t == 0)
                     {
                         // add alfa1 utility for t=0
                         choose_ue[rg] += alfa1[rg];
                     }
-                    ue_2b[rg] = wage_ue_2b + taste_rent_wife + choose_b_emax;
-                    work_2b[rg] = wage_work_2b + taste_rent_wife + choose_b_emax;
-                    nonfired_2b[rg] = wage_nonfired_2b + taste_rent_wife + choose_b_emax_non_f;                  
+                    ue_2b[rg] = wage_ue_2b + taste_rent_husband + choose_b_emax;
+                    work_2b[rg] = wage_work_2b + taste_rent_husband + choose_b_emax;
+                    nonfired_2b[rg] = wage_nonfired_2b + taste_rent_husband + choose_b_emax_non_f;                  
                     
                 } //end rg
 
@@ -1911,15 +1908,14 @@ static double estimation(float* params)
                 for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                 {
 
-                    const float taste_rent_wife = taste[rg] - rent[rg] + wife[rg];
+                    const float taste_rent_husband = taste[rg] - rent[rg] + husband[rg];
                     for (unsigned short w_rg = 0; w_rg < RG_SIZE; ++w_rg)
                     {
-                        // TODO: make emax non zero
-                        const float choose_w_emax = 0.0; //beta*EMAX(t+1,k+1,rg,w_rg,WHITE,0);
-                        const float choose_w_emax_non_f = 0.0; //beta*EMAX(t+1,k+1,rg,w_rg,WHITE,D_W_W[rg]);
-                        ue_2w[rg][w_rg] = wage_ue_2w[w_rg] + taste_rent_wife - travel_cost(rg,w_rg) + choose_w_emax;
-                        work_2w[rg][w_rg] = wage_work_2w[w_rg] + taste_rent_wife - travel_cost(rg,w_rg) + choose_w_emax; 
-                        nonfired_2w[rg][w_rg] = wage_nonfired_2w[rg] + taste_rent_wife + choose_w_emax_non_f;
+                        const float choose_w_emax = beta*EMAX(t+1,k+1,rg,w_rg,WHITE,0);
+                        const float choose_w_emax_non_f = beta*EMAX(t+1,k+1,rg,w_rg,WHITE,D_W_W[rg]);
+                        ue_2w[rg][w_rg] = wage_ue_2w[w_rg] + taste_rent_husband - travel_cost(rg,w_rg) + choose_w_emax;
+                        work_2w[rg][w_rg] = wage_work_2w[w_rg] + taste_rent_husband - travel_cost(rg,w_rg) + choose_w_emax; 
+                        nonfired_2w[rg][w_rg] = wage_nonfired_2w[rg] + taste_rent_husband + choose_w_emax_non_f;
                     }
                 }
 
@@ -2024,7 +2020,6 @@ static double estimation(float* params)
                     {
                         w_wage_flag = true;
                     }
-                    // TODO do we need full/part here?
                     else if (max_index == from_h_rg+7 || max_index == from_h_rg+14)
                     {
                         b_wage_flag = true;
@@ -3268,7 +3263,7 @@ static unsigned short load_dynamic_index(const char* filename, unsigned short* i
 }
 static const char* IND_DATA_FILENAME = "ind_data_3.txt";
 static const char* MOMENTS_FILENAME = "olim_wide_3.txt";
-static const char* WIFE_EDU_FILENAME = "wife_edu.txt";
+static const char* HUSBAND_EDU_FILENAME = "husband_edu.txt";
 static const char* INITIAL_PARAM_FILE = "params.txt";
 static const char* PARAM_INDEX_FILE = "params_index.txt";
 #ifdef SIMULATION
@@ -3364,9 +3359,9 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    if (!load_wife_edu(WIFE_EDU_FILENAME))
+    if (!load_husband_edu(HUSBAND_EDU_FILENAME))
     {
-        fprintf(stderr, "failed to load wife education data from file %s\n", WIFE_EDU_FILENAME);
+        fprintf(stderr, "failed to load husband education data from file %s\n", HUSBAND_EDU_FILENAME);
         return -1;
     }
 
