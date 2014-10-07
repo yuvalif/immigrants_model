@@ -842,8 +842,8 @@ index   experience (k)
 12      12.0
 12		12.5
 */
-#define index_to_k(I) ((I) >= 6) ? (float)(I) - 3.0 : (float)(I)/2.0
-#define k_to_index(K) ((K) >= 9.0) ? 12 : (((K) >= 3.0) ? (int)(K) + 3 : (int)(K)*2)
+#define index_to_k(I) (((I) >= 6) ? (float)(I) - 3.0 : (float)(I)/2.0)
+#define k_to_index(K) (((K) >= 9.0) ? 12 : (((K) >= 3.0) ? (int)(K) + 3 : (int)((K)*2.0)))
 
 #ifdef CALC_STDEV
 static double estimation(float* params, FILE *fp)
@@ -1432,8 +1432,8 @@ static double estimation(float* params)
                             unsigned short D_W_B = get_discrete_index(tmpdb);
                             
                             wage_nonfired_2w[rg][dwage] = draw_wage(wage_w[dwage], prob_nonfired_w);            //equal wage if ind wasn't fired  and -inf if was fired  
-                            float wage_nonfired_2b_full = draw_wage(wage_b[dwage], prob_nonfired_b); //equal wage if ind wasn't fired  and -inf if was fired
-                            float wage_nonfired_2b_part = draw_wage(wage_b[dwage]/2.0, prob_nonfired_b) + alfa3/2.0; //equal wage if ind wasn't fired  and -inf if was fired
+                            const float wage_nonfired_2b_full = draw_wage(wage_b[dwage], prob_nonfired_b); //equal wage if ind wasn't fired  and -inf if was fired
+                            const float wage_nonfired_2b_part = draw_wage(wage_b[dwage]/2.0, prob_nonfired_b) + alfa3/2.0; //equal wage if ind wasn't fired  and -inf if was fired
                             if (t == T)
                             {
                                 choose_ue_emax = 0.0f;//beta*(delta0+delta1*k+delta2*(AGE+t/2.0));
@@ -1459,17 +1459,17 @@ static double estimation(float* params)
                         } // close dwage             
 
                         wage_ue_2w[rg] = draw_wage(wage_w[0], prob_ue_2w[rg]);          // equal wage if ind come fron ue and got an offer and -inf if didn't
-                        float wage_ue_2b = draw_blue_wage(wage_b[0], prob_ue_2b_full[rg], prob_ue_2b_part[rg], ue_2b_full[rg]); // equal wage if ind come fron ue and got an offer and -inf if didn't
+                        float wage_ue_2b = draw_blue_wage(wage_b[0], prob_ue_2b_full[rg], prob_ue_2b_part[rg], ue_2b_full[rg]); // equal wage if ind come fron ue and got an offer and -inf if not
                         wage_ue_2b += (ue_2b_full[rg] == false ? alfa3/2.0 : 0.0);      // add part time alfa3 if needed
                         wage_work_2w[rg] = draw_wage(wage_w[0], prob_work_2w[rg]);      // equal wage if ind come from and got an offer and -inf if didn't
-                        float wage_work_2b = draw_blue_wage(wage_b[0], prob_work_2b_full[rg], prob_work_2b_part[rg], work_2b_full[rg]); // equal wage if ind come from and got an offer and -inf else 
+                        float wage_work_2b = draw_blue_wage(wage_b[0], prob_work_2b_full[rg], prob_work_2b_part[rg], work_2b_full[rg]); // equal wage if ind come from and got an offer and -inf
                         wage_work_2b += (work_2b_full[rg] == false ? alfa3/2.0 : 0.0);  // add part time alfa3 if needed
 
                         // the equivalent to "wage" when UE is chosen
                         choose_ue[rg] =  taste[rg] - rent[rg] + husband[rg] + expf(sgma[2]*tmp3) + alfa3 + choose_ue_emax;
-                        float choose_ue_move = choose_ue[rg] - moving_cost;
+                        const float choose_ue_move = choose_ue[rg] - moving_cost;
 
-                        float tmp = taste[rg] - rent[rg] + husband[rg] + choose_b_emax[0];
+                        const float tmp = taste[rg] - rent[rg] + husband[rg] + choose_b_emax[0];
                         ue_2b[rg] = wage_ue_2b + tmp;
                         work_2b[rg] = wage_work_2b + tmp;
 
@@ -1879,8 +1879,8 @@ static double estimation(float* params)
                     // sampling the wage for each of the transitions
                     
                     wage_nonfired_2w[rg] = draw_wage_f(wage_w_non_f[rg], prob_nonfired_w);          //equal wage if ind wasn't fired  and -inf if was fired
-                    float wage_nonfired_2b_full = draw_wage_f(wage_b_non_f[rg], prob_nonfired_b);  //equal wage if ind wasn't fired  and -inf if was fired
-                    float wage_nonfired_2b_part = draw_wage_f(wage_b_non_f[rg]/2.0, prob_nonfired_b) + alfa3/2.0;  //equal wage if ind wasn't fired  and -inf if was fired
+                    const float wage_nonfired_2b_full = draw_wage_f(wage_b_non_f[rg], prob_nonfired_b);  //equal wage if ind wasn't fired  and -inf if was fired
+                    const float wage_nonfired_2b_part = draw_wage_f(wage_b_non_f[rg]/2.0, prob_nonfired_b) + alfa3/2.0;  //equal wage if ind wasn't fired  and -inf if was fired
                     wage_ue_2w[rg] = draw_wage_f(wage_w[rg], prob_ue_2w);                           //equal wage if i come fron ue and got an offer and -inf if didn't
                     float wage_ue_2b = draw_blue_wage_f(wage_b[rg], prob_ue_2b_full, prob_ue_2b_part, ue_2b_full[rg]);      //equal wage if i come fron ue and got an offer and -inf if didn't
                     wage_ue_2b += (ue_2b_full[rg] == false ? alfa3/2.0 : 0.0);                      // add part time alfa3 if needed
@@ -2141,7 +2141,7 @@ static double estimation(float* params)
                     blue_state = ((tmp_work_rg == 1) ? 0 : 1);
                     from_state = BLUE;
                     // increase experience - by 1 for full, by 0.5 for part
-                    real_k += ((tmp_work_rg == 1) ? 1.0 : 0.5);
+                    real_k += ((blue_state == 0) ? 1.0 : 0.5);
                     // in blue house_rg equals work_rg
                     work_rg_arr[t][draw] = tmp_house_rg;
                     from_w_rg = tmp_house_rg;
@@ -2351,7 +2351,6 @@ static double estimation(float* params)
                 total_max_utility[t] += max_utility;
                 ++total_max_utility_count[t];
 #endif
-
             } // end loop on t
 #ifdef FULL_TRACE
             printf("\n");
@@ -3399,7 +3398,7 @@ int main(int argc, char** argv)
     unsigned short dynamic_param_idx[MAX_PARAM_LEN];
 
     unsigned short dynamic_param_size = load_dynamic_index(PARAM_INDEX_FILE, dynamic_param_idx);
-    if (!dynamic_param_size)
+    if (dynamic_param_size == 0)
     {
         fprintf(stderr, "failed to load dynamic indexes from file %s - using all params\n", PARAM_INDEX_FILE);
     }
