@@ -10,6 +10,8 @@ by Osnat Lifshitz, Chemi Gotlibovski (2009)
 #include <errno.h>
 #include <limits.h>
 #include <assert.h>
+#include <algorithm>
+#include <iostream>
 
 #ifndef LINE_MAX
     #define LINE_MAX 256
@@ -119,9 +121,6 @@ inline float draw_blue_wage(float wage, float prob_full, float prob_part, bool& 
     }
     return -INFINITY;
 }
-
-#define draw_wage_f(wage,prob) (rand01() < (prob)) ? (wage) : -INFINITY
-#define draw_blue_wage_f(wage, prob_full, prob_part, full) draw_blue_wage(wage, prob_full, prob_part, full)
 
 static void init_rand()
 {
@@ -609,7 +608,7 @@ static bool load_moments(const char* filename)
     }
 }
 
-const unsigned short int MAX_PARAM_LEN = 161;   //# of parameters
+const unsigned short int MAX_PARAM_LEN = 162;   //# of parameters
 #define set_param_array(param_name,size) float param_name[(size)]; for (j = 0; j < (size); ++i, ++j) param_name[j] = params[i]; 
 #define set_param(param_name) float param_name = params[i]; ++i;
 
@@ -763,27 +762,30 @@ void print_choices(float* choices)
     printf("|| UE        || Blue, full || Blue, part || White0     || White1     || White2     || White3     || White4     || White5     || White6     ||\n");
     printf("---------------------------------------------------------------------------------------------------------------------------------------------\n");
 
-    printf("Unemployment Utility:");
-    for (unsigned int i = 0; i < RG_SIZE; ++i)
+    printf("Unemployment Utility         :");
+    for (unsigned short i = 0; i < RG_SIZE; ++i)
     {
-        printf("%f (%d), ", choices[i], i);
+        printf(" %6.0f (%hu), ", choices[i], i);
     }
-    printf("\nBlue Utility (full time):");
-    for (unsigned int i = 0; i < RG_SIZE; ++i)
+    printf("\n");
+    printf("Blue Utility (full time)     :  ");
+    for (unsigned short i = 0; i < RG_SIZE; ++i)
     {
-        printf("%f (%d), ", choices[i+7], i+7);
+        printf("%10.0f (%hu), ", choices[i+7], i+7);
     }
-    printf("\nBlue Utility (part time):");
-    for (unsigned int i = 0; i < RG_SIZE; ++i)
+    printf("\n");
+    printf("Blue Utility (part time)     :");
+    for (unsigned short i = 0; i < RG_SIZE; ++i)
     {
-        printf("%f (%d), ", choices[i+14], i+14);
+        printf("%10.0f (%hu), ", choices[i+14], i+14);
     }
-    for (unsigned int i = 0; i < RG_SIZE; ++i)
+    for (unsigned short i = 0; i < RG_SIZE; ++i)
     {
-        printf("\nWhite Utility (region %d):", i);
-        for (unsigned int j = 0; j < RG_SIZE; ++j)
+        printf("\n");
+        printf("White Utility (work region %hu):", i);
+        for (unsigned short j = 0; j < RG_SIZE; ++j)
         {
-            printf("%f (%d), ", choices[(i+3)*7+j], (i+3)*7+j);
+            printf("%10.0f (%hu), ", choices[(i+3)*7+j], (i+3)*7+j);
         }
     }
 }
@@ -806,7 +808,7 @@ static const unsigned int MARRIED_SIM = 6;
 #endif
 
 // estimation function used inside the optimization process to find the params the find minimum likelihood
-// input: array of MAX_PARAM_LEN (161) parameters
+// input: array of MAX_PARAM_LEN (162) parameters
 // output: likelihood of these params in respect to the individuals' params and the moments
 
 #define RENT_REF_PARAM 1.0
@@ -842,8 +844,9 @@ index   experience (k)
 12      12.0
 12		12.5
 */
+const unsigned short MAXIMUM_K_INDEX=12;
 #define index_to_k(I) (((I) >= 6) ? (float)(I) - 3.0 : (float)(I)/2.0)
-#define k_to_index(K) (((K) >= 9.0) ? 12 : (((K) >= 3.0) ? (int)(K) + 3 : (int)((K)*2.0)))
+#define k_to_index(K) (((K) >= 9.0) ? MAXIMUM_K_INDEX : (((K) >= 3.0) ? (int)(K) + 3 : (int)((K)*2.0)))
 
 #ifdef CALC_STDEV
 static double estimation(float* params, FILE *fp)
@@ -986,7 +989,9 @@ static double estimation(float* params)
     set_param(lamda22) // unemployment[89]
     set_param(lamda23) // age at arrival[90]
     lamda23 = lamda23/100.0f;
+    // TODO: add different parameters for time for: white, blue full and blue part
     set_param(lamda25) // time[91]
+    // TODO: add different parameters for time^2 for: white, blue full and blue part
     set_param(lamda26) // time^2[92]
     set_param(lamda27) // type1[93]
     set_param(lamda28) // type2[94]
@@ -1032,6 +1037,7 @@ static double estimation(float* params)
     set_param(lamda29) // kids w [154]
     set_param(lamda39) // kids b full [155]
     set_param(lamda49) // kids b part [156]
+    // TODO: remove these parameters
     set_param(lamda29_1) // women age w [157]
     set_param(lamda39_1) // women age b full [158]
     set_param(lamda49_1) // women age b part [159]
@@ -1306,10 +1312,10 @@ static double estimation(float* params)
             const unsigned long t_sq = t*t;
             const unsigned short age40 = (((float)AGE + (float)t/2.0f) > 39.5f);
             //part of the probability of getting job offer in white - page 13 (miss:constant by region +come from unemp)
-            const float lamda_work_2w = const_lamda_work_2w+lamda25*t+lamda26*(float)t_sq+lamda29_1*(AGE+T);
+            const float lamda_work_2w = const_lamda_work_2w+lamda25*t+lamda26*(float)t_sq+lamda29_1*(AGE+t);
             //part of the probability of getting job offer in blue - page 13(miss:constant by region +come from unemp) 
-            const float lamda_work_2b_full = const_lamda_work_2b_full+lamda35*t+lamda36*(float)t_sq+lamda39_1*(AGE+t);
-            const float lamda_work_2b_part = const_lamda_work_2b_part+lamda35*t+lamda36*(float)t_sq+lamda49_1*(AGE+t);
+            const float lamda_work_2b_full = const_lamda_work_2b_full+lamda35*t+lamda36*(float)t_sq+lamda39_1*(float)(AGE+t);
+            const float lamda_work_2b_part = const_lamda_work_2b_part+lamda35*t+lamda36*(float)t_sq+lamda49_1*(float)(AGE+t);
             const float k_const_tmp_w = t_const_tmp_w+beta26*age40;   //part of the wage equation  white collar- equation 7 page 14 (miss:const by region+exp+exp^2)
             const float k_const_tmp_b = t_const_tmp_b+beta36*age40;   //part of the wage equation  blue collar- equation 7 page 14 (miss:const by region+exp+exp^2)
 
@@ -1354,8 +1360,9 @@ static double estimation(float* params)
                     rent[rg] = rent[rg]/(1.0f + R[rg]);
                 }
             }
-
-            for (unsigned short k = 0 ; k <= t; ++k)
+            // TODO: should we run to t? min(t,12) ? or PERIODS?
+            //const unsigned short MAX_K = std::min(t,MAXIMUM_K_INDEX);
+            for (unsigned short k = 0 ; k <= MAXIMUM_K_INDEX; ++k)
             {
                 // loop over experience
 #ifdef PERF_TRACE
@@ -1432,25 +1439,25 @@ static double estimation(float* params)
                             unsigned short D_W_B = get_discrete_index(tmpdb);
                             
                             wage_nonfired_2w[rg][dwage] = draw_wage(wage_w[dwage], prob_nonfired_w);            //equal wage if ind wasn't fired  and -inf if was fired  
-                            const float wage_nonfired_2b_full = draw_wage(wage_b[dwage], prob_nonfired_b); //equal wage if ind wasn't fired  and -inf if was fired
+                            const float wage_nonfired_2b_full = draw_wage(wage_b[dwage], prob_nonfired_b);      //equal wage if ind wasn't fired  and -inf if was fired
                             const float wage_nonfired_2b_part = draw_wage(wage_b[dwage]/2.0, prob_nonfired_b) + alfa3/2.0; //equal wage if ind wasn't fired  and -inf if was fired
                             if (t == T)
                             {
-                                choose_ue_emax = 0.0f;//beta*(delta0+delta1*k+delta2*(AGE+t/2.0));
-                                choose_b_emax[dwage]= 0.0f;//beta*(delta0+delta1*k+delta2*(AGE+t/2.0)+delta3);
+                                choose_ue_emax = 0.0f;
+                                choose_b_emax[dwage]= 0.0f;
                                 for (unsigned short w_rg = 0; w_rg < RG_SIZE; ++w_rg)
                                 {
-                                    choose_w_emax[rg][w_rg][dwage]= 0.0f;//beta*(delta0+delta1*k+delta2*(AGE+t/2.0)+delta4);
+                                    choose_w_emax[rg][w_rg][dwage]= 0.0f;
                                 }
                             } 
                             else
                             {
                                 choose_ue_emax = beta*EMAX(t+1,k,rg,0,UE,0);
-                                choose_b_emax[dwage] = beta*EMAX(t+1,k+1,rg,0,BLUE,D_W_B);
+                                choose_b_emax[dwage] = beta*EMAX(t+1,k_to_index(real_k+1.0),rg,0,BLUE,D_W_B);
 
                                 for (unsigned short w_rg = 0; w_rg < RG_SIZE; ++w_rg)
                                 {
-                                    choose_w_emax[rg][w_rg][dwage] = beta*EMAX(t+1,k+1,rg,w_rg,WHITE,D_W_W);
+                                    choose_w_emax[rg][w_rg][dwage] = beta*EMAX(t+1,k_to_index(real_k+1.0),rg,w_rg,WHITE,D_W_W);
                                 }
                             }
 
@@ -1738,9 +1745,11 @@ static double estimation(float* params)
 #ifdef FULL_TRACE
             printf("%hu %hu %hu %hu ", I_id, (REP1 ? 1 : (REP2 ? 2 : (REP3 ? 3 : 4))),  I_type, draw); 
 #endif
+            const unsigned short BLUE_STATE_FULL = 0;
+            const unsigned short BLUE_STATE_PART = 1;
             unsigned short dwage_b = 0;
             unsigned short dwage_w = 0;
-            unsigned short blue_state = 0; // 0 blue full, 1 blue part
+            unsigned short blue_state = BLUE_STATE_FULL; // 0 blue full, 1 blue part
             unsigned short from_state = UE;  
             unsigned short from_h_rg = 0;
             unsigned short from_w_rg = 0;
@@ -1775,12 +1784,11 @@ static double estimation(float* params)
                 bool w_wage_flag = false;
                 bool b_wage_flag = false;
                 const unsigned short age40 = (((float)AGE + (float)t/2.0f) > 39.5f);
-                const unsigned short k = k_to_index(real_k);
                 const float k_sq = real_k*real_k;
                 const unsigned long t_sq = t*t;
-                const float lamda_work_2w = const_lamda_work_2w+lamda25*t+lamda26*(float)t_sq+lamda29_1*(AGE+t); //part of the probability of getting job offer in white - page 13
-                const float lamda_work_2b_full = const_lamda_work_2b_full+lamda35*t+lamda36*(float)t_sq+lamda39_1*(AGE+t); //part of the probability of getting job offer in blue full - page 13
-                const float lamda_work_2b_part = const_lamda_work_2b_part+lamda35*t+lamda36*(float)t_sq+lamda49_1*(AGE+t); //part of the probability of getting job offer in blue part - page 13
+                const float lamda_work_2w = const_lamda_work_2w+lamda25*t+lamda26*(float)t_sq+lamda29_1*(float)(AGE+t); //part of the probability of getting job offer in white - page 13
+                const float lamda_work_2b_full = const_lamda_work_2b_full+lamda35*t+lamda36*(float)t_sq+lamda39_1*(float)(AGE+t); //part of the probability of getting job offer in blue full - page 13
+                const float lamda_work_2b_part = const_lamda_work_2b_part+lamda35*t+lamda36*(float)t_sq+lamda49_1*(float)(AGE+t); //part of the probability of getting job offer in blue part - page 13
                 //part of the wage equation  white collar- equation 7 page 14 (adding exp and exp^2 still miss:const by region)
                 const float rg_const_tmp_w = t_const_tmp_w+beta26*age40+beta24*real_k+beta25*k_sq;
                 //part of the wage equation  blue collar- equation 7 page 14 (adding exp and exp^2 still miss:const by region)
@@ -1878,19 +1886,19 @@ static double estimation(float* params)
 
                     // sampling the wage for each of the transitions
                     
-                    wage_nonfired_2w[rg] = draw_wage_f(wage_w_non_f[rg], prob_nonfired_w);          //equal wage if ind wasn't fired  and -inf if was fired
-                    const float wage_nonfired_2b_full = draw_wage_f(wage_b_non_f[rg], prob_nonfired_b);  //equal wage if ind wasn't fired  and -inf if was fired
-                    const float wage_nonfired_2b_part = draw_wage_f(wage_b_non_f[rg]/2.0, prob_nonfired_b) + alfa3/2.0;  //equal wage if ind wasn't fired  and -inf if was fired
-                    wage_ue_2w[rg] = draw_wage_f(wage_w[rg], prob_ue_2w);                           //equal wage if i come fron ue and got an offer and -inf if didn't
-                    float wage_ue_2b = draw_blue_wage_f(wage_b[rg], prob_ue_2b_full, prob_ue_2b_part, ue_2b_full[rg]);      //equal wage if i come fron ue and got an offer and -inf if didn't
+                    wage_nonfired_2w[rg] = draw_wage(wage_w_non_f[rg], prob_nonfired_w);          //equal wage if ind wasn't fired  and -inf if was fired
+                    const float wage_nonfired_2b_full = draw_wage(wage_b_non_f[rg], prob_nonfired_b);  //equal wage if ind wasn't fired  and -inf if was fired
+                    const float wage_nonfired_2b_part = draw_wage(wage_b_non_f[rg]/2.0, prob_nonfired_b) + alfa3/2.0;  //equal wage if ind wasn't fired  and -inf if was fired
+                    wage_ue_2w[rg] = draw_wage(wage_w[rg], prob_ue_2w);                           //equal wage if i come fron ue and got an offer and -inf if didn't
+                    float wage_ue_2b = draw_blue_wage(wage_b[rg], prob_ue_2b_full, prob_ue_2b_part, ue_2b_full[rg]);      //equal wage if i come fron ue and got an offer and -inf if didn't
                     wage_ue_2b += (ue_2b_full[rg] == false ? alfa3/2.0 : 0.0);                      // add part time alfa3 if needed
-                    wage_work_2w[rg] = draw_wage_f(wage_w[rg], prob_work_2w);                       //equal wage if ind come from and got an offer and -inf if didn't
-                    float wage_work_2b = draw_blue_wage_f(wage_b[rg], prob_work_2b_full, prob_work_2b_part, work_2b_full[rg]);  //equal wage if ind come from and got an offer and -inf if didn't
+                    wage_work_2w[rg] = draw_wage(wage_w[rg], prob_work_2w);                       //equal wage if ind come from and got an offer and -inf if didn't
+                    float wage_work_2b = draw_blue_wage(wage_b[rg], prob_work_2b_full, prob_work_2b_part, work_2b_full[rg]);  //equal wage if ind come from and got an offer and -inf if didn't
                     wage_work_2b += (work_2b_full[rg] == false ? alfa3/2.0 : 0.0);                  // add part time alfa3 if needed
 
-                    const float choose_ue_emax = beta*EMAX(t+1,k,rg,0,UE,0);
-                    const float choose_b_emax_non_f = beta*EMAX(t+1,k+1,rg,0,BLUE,D_W_B[rg]);
-                    const float choose_b_emax = beta*EMAX(t+1,k+1,rg,0,BLUE,0);
+                    const float choose_ue_emax = beta*EMAX(t+1,k_to_index(real_k),rg,0,UE,0);
+                    const float choose_b_emax_non_f = beta*EMAX(t+1,k_to_index(real_k+1.0),rg,0,BLUE,D_W_B[rg]);
+                    const float choose_b_emax = beta*EMAX(t+1,k_to_index(real_k+1.0),rg,0,BLUE,0);
 
                     const float taste_rent_husband = taste[rg] - rent[rg] + husband[rg];
                     
@@ -1915,8 +1923,8 @@ static double estimation(float* params)
                     const float taste_rent_husband = taste[rg] - rent[rg] + husband[rg];
                     for (unsigned short w_rg = 0; w_rg < RG_SIZE; ++w_rg)
                     {
-                        const float choose_w_emax = beta*EMAX(t+1,k+1,rg,w_rg,WHITE,0);
-                        const float choose_w_emax_non_f = beta*EMAX(t+1,k+1,rg,w_rg,WHITE,D_W_W[rg]);
+                        const float choose_w_emax = beta*EMAX(t+1,k_to_index(real_k+1.0),rg,w_rg,WHITE,0);
+                        const float choose_w_emax_non_f = beta*EMAX(t+1,k_to_index(real_k+1),rg,w_rg,WHITE,D_W_W[rg]);
                         ue_2w[rg][w_rg] = wage_ue_2w[w_rg] + taste_rent_husband - travel_cost(rg,w_rg) + choose_w_emax;
                         work_2w[rg][w_rg] = wage_work_2w[w_rg] + taste_rent_husband - travel_cost(rg,w_rg) + choose_w_emax; 
                         nonfired_2w[rg][w_rg] = wage_nonfired_2w[rg] + taste_rent_husband + choose_w_emax_non_f;
@@ -1935,7 +1943,7 @@ static double estimation(float* params)
                 {
                     for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                     {
-                        float tmp_moving_cost = from_h_rg != rg ? moving_cost : 0.0;
+                        const float tmp_moving_cost = (t == 0 ? 0.0 : (from_h_rg != rg ? moving_cost : 0.0));
                         // stay in ue
                         choices[rg] = choose_ue[rg] - tmp_moving_cost;
                         // move to blue accoreding to full/part
@@ -1951,7 +1959,7 @@ static double estimation(float* params)
                 {
                     for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                     {
-                        float tmp_moving_cost = from_h_rg != rg ? moving_cost : 0.0;
+                        const float tmp_moving_cost = (t == 0 ? 0.0 : (from_h_rg != rg ? moving_cost : 0.0));
                         // move to ue
                         choices[rg] = choose_ue[rg] - tmp_moving_cost;
 						// stay in blue accoreding to full/part
@@ -1963,12 +1971,12 @@ static double estimation(float* params)
                         else
                         {
                             // stay in same region
-                            if (blue_state == 0)
+                            if (blue_state == BLUE_STATE_FULL)
                             {
                                 // full
                                 choices[rg+7] = nonfired_2b_full[rg];
                             }
-                            else if (blue_state == 1)
+                            else if (blue_state == BLUE_STATE_PART)
                             {
                                 // part
                                 choices[rg+14] = nonfired_2b_part[rg];
@@ -1989,7 +1997,7 @@ static double estimation(float* params)
                 {
                     for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                     {
-                        float tmp_moving_cost = from_h_rg != rg ? moving_cost : 0.0;
+                        const float tmp_moving_cost = (t == 0 ? 0.0 : (from_h_rg != rg ? moving_cost : 0.0));
                         // move to ue
                         choices[rg] = choose_ue[rg]- tmp_moving_cost;
                         // move to blue accoreding to full/part
@@ -2030,6 +2038,7 @@ static double estimation(float* params)
 
                 // check that a maximum was found
                 assert(max_index > -1);
+                //print_choices(choices);
                 
                 if (t == PERIODS-1)
                 {
@@ -2138,10 +2147,10 @@ static double estimation(float* params)
                     job_arr[t][draw] = BLUE;
 #endif
                     // 0 blue full, 1 blue part
-                    blue_state = ((tmp_work_rg == 1) ? 0 : 1);
+                    blue_state = ((tmp_work_rg == 1) ? BLUE_STATE_FULL : BLUE_STATE_PART);
                     from_state = BLUE;
                     // increase experience - by 1 for full, by 0.5 for part
-                    real_k += ((blue_state == 0) ? 1.0 : 0.5);
+                    real_k += ((blue_state == BLUE_STATE_FULL) ? 1.0 : 0.5);
                     // in blue house_rg equals work_rg
                     work_rg_arr[t][draw] = tmp_house_rg;
                     from_w_rg = tmp_house_rg;
@@ -2333,18 +2342,22 @@ static double estimation(float* params)
                             dvtau[st] = 0.0f;
                         }
                     }
-                
+               
+                    bool nothing_chosen = true;
                     for (unsigned short st = 0; st < STATE_VECTOR_SIZE; ++st)
                     {
                         if (choices[st] > -INFINITY)
                         {
                             p_bar_arr[st][t] += (float)(dvtau[st]/dvsum);
+                            nothing_chosen = false;
                         }
                         if (draw == draws_f-1)
                         {
+                            // in the last draw calculate the average
                             p_bar_arr[st][t] = p_bar_arr[st][t]/(float)draws_f;
                         }
                     }
+                    assert(!nothing_chosen);
                 }
 
 #ifdef SIMULATION
@@ -2640,7 +2653,7 @@ static double estimation(float* params)
     double likelihood = 0.0;
     for (unsigned short I = 0; I < OBSR; ++I)
     {
-        double prob = PROB_T0*like_arr[I] + PROB_T2*like_arr[I+OBSR] + PROB_T1*like_arr[I+OBSR*2];
+        const double prob = PROB_T0*like_arr[I] + PROB_T2*like_arr[I+OBSR] + PROB_T1*like_arr[I+OBSR*2];
         double log_prob;
         if (prob < 1e-300)
         {
@@ -2651,7 +2664,7 @@ static double estimation(float* params)
         }
         else
         {
-            log_prob= log(prob);
+            log_prob = log(prob);
         }
         likelihood += log_prob;
 #ifdef CALC_STDEV
