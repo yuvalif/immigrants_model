@@ -608,7 +608,7 @@ static bool load_moments(const char* filename)
     }
 }
 
-const unsigned short int MAX_PARAM_LEN = 161;   //# of parameters
+const unsigned short int MAX_PARAM_LEN = 163;   //# of parameters
 #define set_param_array(param_name,size) float param_name[(size)]; for (j = 0; j < (size); ++i, ++j) param_name[j] = params[i]; 
 #define set_param(param_name) float param_name = params[i]; ++i;
 
@@ -808,7 +808,7 @@ static const unsigned int MARRIED_SIM = 6;
 #endif
 
 // estimation function used inside the optimization process to find the params the find minimum likelihood
-// input: array of MAX_PARAM_LEN (161) parameters
+// input: array of MAX_PARAM_LEN (163) parameters
 // output: likelihood of these params in respect to the individuals' params and the moments
 
 #define RENT_REF_PARAM 1.0
@@ -1000,7 +1000,6 @@ static double estimation(float* params)
     set_param_array(lamda30, RG_SIZE) // constant for every region[97...103]
     //float lamda31 = lamda21; // schooling - the same as in white collar
     float lamda32 = lamda22; // unemployment - the same as in white collar
-    float lamda33 = lamda23; // age at arrival - the same as in white collar
     set_param(lamda35) // time[104]
     set_param(lamda36) // time^2[105]
     set_param(lamda37) // type1[106]
@@ -1040,6 +1039,10 @@ static double estimation(float* params)
 
     set_param(alfa3) // return for leisure at unemployment, 0.5*alfa3 is return for leisure at part time [159]
     set_param(alfa20) // hustband's education influence on moving cost [160]
+    set_param(lamda33) // age at arrival - blue full [161]
+    lamda33 = lamda33/100.0f;
+    set_param(lamda43) // age at arrival - blue part [162]
+    lamda43 = lamda43/100.0f;
 
     float PROB_T1=expf(type1)/(1.0+(expf(type1)+expf(type2)));  
     float PROB_T2=expf(type2)/(1.0+(expf(type1)+expf(type2)));
@@ -1292,7 +1295,7 @@ static double estimation(float* params)
         const float const_lamda_work_2w = (lamda21_1*SCHOOL1 + lamda21_2*SCHOOL2 + lamda21_3*SCHOOL3) + 
                                             lamda23*AGE+lamda27*TYPE2+lamda28*TYPE3+lamda29*KIDS; //part of the probability of getting job offer in white - page 13
         const float const_lamda_work_2b_full = lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda39*KIDS; //part of the probability of getting job offer in blue - page 13
-        const float const_lamda_work_2b_part = lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda49*KIDS; //part of the probability of getting job offer in blue - page 13
+        const float const_lamda_work_2b_part = lamda43*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda49*KIDS; //part of the probability of getting job offer in blue - page 13
         const float t_const_tmp_w = (beta21_1*SCHOOL1 + beta21_2*SCHOOL2 + beta21_3*SCHOOL3) + 
                                             beta22*EXP_U+beta23*EXP_U_SQ+beta27*TYPE2+beta28*TYPE3;  //part of the wage equation  white collar- equation 7 page 14
         const float t_const_tmp_b = (beta31_1*SCHOOL1 + beta31_2*SCHOOL2 + beta31_3*SCHOOL3) + 

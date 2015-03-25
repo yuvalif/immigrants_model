@@ -89,7 +89,7 @@ schooling<15,84,0.5,0.05,86,0.5,0.05,lamda21_1
 TODO,N/A,,,87,0.345,,lamda21_2
 schooling 16-18,85,0.345,0.0345,88,0.345,0.0345,lamda21_3
 unemp,86,1,1,89,1,1,lamda22|lamda32
-age at arrival,87,-3.74,-0.0374,90,-3.74,-0.0374,lamda23|lamda33
+age at arrival,87,-3.74,-0.0374,90,-3.74,-0.0374,lamda23
 time,88,0.228996,0.229,91,0.228996012,0.229,lamda25
 time2,89,-0.0121098,-0.01211,92,-0.012109829,-0.01211,lamda26
 type 1,90,1.80029,1.80029,93,1.80029,1.80029,lamda27
@@ -160,3 +160,5 @@ time for part time blue,N/A,,,157,0.260193,,lamda45
 time square for part time blue ,N/A,,,158,1.178,,lamda46
 return for leisure at unemployment,N/A,,,160,10,,alfa3
 hustband's education influence on moving cost,N/A,,,161,0.5,,alfa20
+age at arrival blue full,87,-3.74,-0.0374,90,-3.74,-0.0374,lamda33
+age at arrival blue part,87,-3.74,-0.0374,90,-3.74,-0.0374,lamda34
