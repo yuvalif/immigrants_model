@@ -156,8 +156,7 @@ married*age by region - area 7 - Jerusalem,150,7.1456,7.1456,153,7.1456,7.1456,p
 kids w,N/A,,,154,0,,lamda29
 kids b full,N/A,,,155,-1,,lamda39
 kids b part,N/A,,,156,-0.7,,lamda49
-women age w,N/A,,,157,0.260193,,lamda29_1
-women age b full,N/A,,,158,1.178,,lamda39_1
-women age b part,N/A,,,159,1.1732,,lamda49_1
+time for part time blue,N/A,,,157,0.260193,,lamda45
+time square for part time blue ,N/A,,,158,1.178,,lamda46
 return for leisure at unemployment,N/A,,,160,10,,alfa3
 hustband's education influence on moving cost,N/A,,,161,0.5,,alfa20
