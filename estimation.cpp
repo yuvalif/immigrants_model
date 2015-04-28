@@ -105,7 +105,7 @@ float randn_f_arr[DRAWS_F][OBS][T][RG_SIZE][STATE_SIZE];
 
 #define draw_wage(wage,prob) (rand01() < (prob)) ? (wage) : -INFINITY
 //TODO what value to put in "full" in case of no work?
-inline float draw_blue_wage(float wage, float prob_full, float prob_part, bool& full)
+inline float draw_blue_wage(float wage, float prob_full, float prob_part, bool& full, float part_wage_factor)
 {
     float p = rand01();
     full = true;
@@ -117,7 +117,7 @@ inline float draw_blue_wage(float wage, float prob_full, float prob_part, bool& 
     else if (p < prob_full + prob_part)
     {
         full = false;
-        return wage/2.0;
+        return wage*part_wage_factor;
     }
     return -INFINITY;
 }
@@ -608,7 +608,7 @@ static bool load_moments(const char* filename)
     }
 }
 
-const unsigned short int MAX_PARAM_LEN = 163;   //# of parameters
+const unsigned short int MAX_PARAM_LEN = 164;   //# of parameters
 #define set_param_array(param_name,size) float param_name[(size)]; for (j = 0; j < (size); ++i, ++j) param_name[j] = params[i]; 
 #define set_param(param_name) float param_name = params[i]; ++i;
 
@@ -808,7 +808,7 @@ static const unsigned int MARRIED_SIM = 6;
 #endif
 
 // estimation function used inside the optimization process to find the params the find minimum likelihood
-// input: array of MAX_PARAM_LEN (163) parameters
+// input: array of MAX_PARAM_LEN (164) parameters
 // output: likelihood of these params in respect to the individuals' params and the moments
 
 #define RENT_REF_PARAM 1.0
@@ -1043,6 +1043,7 @@ static double estimation(float* params)
     lamda33 = lamda33/100.0f;
     set_param(lamda43) // age at arrival - blue part [162]
     lamda43 = lamda43/100.0f;
+    set_param(yuval_sucks) // part time wage factor [163]
 
     float PROB_T1=expf(type1)/(1.0+(expf(type1)+expf(type2)));  
     float PROB_T2=expf(type2)/(1.0+(expf(type1)+expf(type2)));
@@ -1465,10 +1466,10 @@ static double estimation(float* params)
                         } // close dwage             
 
                         wage_ue_2w[rg] = draw_wage(wage_w[0], prob_ue_2w[rg]);          // equal wage if ind come fron ue and got an offer and -inf if didn't
-                        float wage_ue_2b = draw_blue_wage(wage_b[0], prob_ue_2b_full[rg], prob_ue_2b_part[rg], ue_2b_full[rg]); // equal wage if ind come fron ue and got an offer and -inf if not
+                        float wage_ue_2b = draw_blue_wage(wage_b[0], prob_ue_2b_full[rg], prob_ue_2b_part[rg], ue_2b_full[rg], yuval_sucks); // equal wage if ind come fron ue and got an offer and -inf if not
                         wage_ue_2b += (ue_2b_full[rg] == false ? alfa3/2.0 : 0.0);      // add part time alfa3 if needed
                         wage_work_2w[rg] = draw_wage(wage_w[0], prob_work_2w[rg]);      // equal wage if ind come from and got an offer and -inf if didn't
-                        float wage_work_2b = draw_blue_wage(wage_b[0], prob_work_2b_full[rg], prob_work_2b_part[rg], work_2b_full[rg]); // equal wage if ind come from and got an offer and -inf
+                        float wage_work_2b = draw_blue_wage(wage_b[0], prob_work_2b_full[rg], prob_work_2b_part[rg], work_2b_full[rg], yuval_sucks); // equal wage if ind come from and got an offer and -inf
                         wage_work_2b += (work_2b_full[rg] == false ? alfa3/2.0 : 0.0);  // add part time alfa3 if needed
 
                         // the equivalent to "wage" when UE is chosen
@@ -1889,10 +1890,10 @@ static double estimation(float* params)
                     const float wage_nonfired_2b_full = draw_wage(wage_b_non_f[rg], prob_nonfired_b);  //equal wage if ind wasn't fired  and -inf if was fired
                     const float wage_nonfired_2b_part = draw_wage(wage_b_non_f[rg]/2.0, prob_nonfired_b) + alfa3/2.0;  //equal wage if ind wasn't fired  and -inf if was fired
                     wage_ue_2w[rg] = draw_wage(wage_w[rg], prob_ue_2w);                           //equal wage if i come fron ue and got an offer and -inf if didn't
-                    float wage_ue_2b = draw_blue_wage(wage_b[rg], prob_ue_2b_full, prob_ue_2b_part, ue_2b_full[rg]);      //equal wage if i come fron ue and got an offer and -inf if didn't
+                    float wage_ue_2b = draw_blue_wage(wage_b[rg], prob_ue_2b_full, prob_ue_2b_part, ue_2b_full[rg], yuval_sucks);      //equal wage if i come fron ue and got an offer and -inf if didn't
                     wage_ue_2b += (ue_2b_full[rg] == false ? alfa3/2.0 : 0.0);                      // add part time alfa3 if needed
                     wage_work_2w[rg] = draw_wage(wage_w[rg], prob_work_2w);                       //equal wage if ind come from and got an offer and -inf if didn't
-                    float wage_work_2b = draw_blue_wage(wage_b[rg], prob_work_2b_full, prob_work_2b_part, work_2b_full[rg]);  //equal wage if ind come from and got an offer and -inf if didn't
+                    float wage_work_2b = draw_blue_wage(wage_b[rg], prob_work_2b_full, prob_work_2b_part, work_2b_full[rg], yuval_sucks);  //equal wage if ind come from and got an offer and -inf if didn't
                     wage_work_2b += (work_2b_full[rg] == false ? alfa3/2.0 : 0.0);                  // add part time alfa3 if needed
 
                     const float choose_ue_emax = beta*EMAX(t+1,k_to_index(real_k),rg,0,UE,0);
