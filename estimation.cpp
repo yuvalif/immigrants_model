@@ -1026,10 +1026,10 @@ static double estimation(float* params)
 
     set_param_array(R, RG_SIZE) //rent by area [119...125]
     
-    set_param_array(psi1, RG_SIZE) //women Married by region[126...132]
-    set_param_array(psi2, RG_SIZE) //women education by region[133...139]
-    set_param_array(psi3, RG_SIZE) //married*kids by region[140...146]
-    set_param_array(psi4, RG_SIZE) //married*women age by region[147...153]
+    set_param_array(psi1, RG_SIZE) // Married by region[126...132]
+    set_param_array(psi2, RG_SIZE) // men education by region[133...139]
+    set_param_array(psi3, RG_SIZE) // married*kids by region[140...146]
+    set_param_array(psi4, RG_SIZE) // married*women age by region[147...153]
 
     set_param(lamda29) // kids w [154]
     set_param(lamda39) // kids b full [155]
@@ -1267,6 +1267,16 @@ static double estimation(float* params)
         const unsigned short    REP3 = REP3_arr[I];
         const unsigned short    TYPE2 = TYPE2_arr[I];
         const unsigned short    TYPE3 = TYPE3_arr[I];
+        if (M != 0 && HUSBAND_EDU_arr[I] == 99)
+        {
+            // if education is missing set it to 13 years (average)
+             HUSBAND_EDU_arr[I] = 12;
+        }
+        if (M == 0 &&  HUSBAND_EDU_arr[I] != 99)
+        {
+            // if not married, set to 99
+            HUSBAND_EDU_arr[I] = 99;
+        }
         const unsigned short    HUSBAND_EDU = HUSBAND_EDU_arr[I];
 #ifdef TRACE
         short int               HUSBAND_EDU_LEVEL = -1;
@@ -3259,6 +3269,10 @@ static double estimation(float* params)
 
         for (unsigned short t = 0; t < max_T; ++t)
         {
+            if (t != 1 && t !=3 && t !=5 && t != 9)
+            {
+                continue;
+            }
             printf("%hu\t%lu\t", t, house_notype_edu_distribution_count[edu_level][t]);
             for (unsigned rg = 0; rg < RG_SIZE; ++rg)
             {
@@ -3292,6 +3306,10 @@ static double estimation(float* params)
         }
         for (unsigned short t = 0; t < MOMENTS_PERIODS ; ++t)
         {
+            if (t != 1 && t !=3 && t !=5 && t != 9)
+            {
+                continue;
+            }
             printf("%hu\t%lu\t", t, house_distribution_count[0][t]);
             for (unsigned rg = 0; rg < RG_SIZE; ++rg)
             {
@@ -3317,6 +3335,10 @@ static double estimation(float* params)
         printf("---------------------------------------------------------------------------------\n");
         for (unsigned short t = 0; t < max_T; ++t)
         {
+            if (t != 1 && t !=3 && t !=5 && t != 9)
+            {
+                continue;
+            }
             printf("%hu\t%lu\t", t, occ_notype_edu_distribution_count[edu_level][t]);
             for (unsigned st = 0; st < ALL_STATE_SIZE; ++st)
             {
@@ -3351,6 +3373,10 @@ static double estimation(float* params)
         }
         for (unsigned short t = 0; t < MOMENTS_PERIODS ; ++t)
         {
+            if (t != 1 && t !=3 && t !=5 && t != 9)
+            {
+                continue;
+            }
             printf("%hu\t%lu\t", t, occ_distribution_count[0][t]);
             for (unsigned st = 0; st < ALL_STATE_SIZE; ++st)
             {
