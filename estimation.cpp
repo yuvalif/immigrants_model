@@ -608,7 +608,7 @@ static bool load_moments(const char* filename)
     }
 }
 
-const unsigned short int MAX_PARAM_LEN = 164;   //# of parameters
+const unsigned short int MAX_PARAM_LEN = 168;   //# of parameters
 #define set_param_array(param_name,size) float param_name[(size)]; for (j = 0; j < (size); ++i, ++j) param_name[j] = params[i]; 
 #define set_param(param_name) float param_name = params[i]; ++i;
 
@@ -808,7 +808,7 @@ static const unsigned int MARRIED_SIM = 6;
 #endif
 
 // estimation function used inside the optimization process to find the params the find minimum likelihood
-// input: array of MAX_PARAM_LEN (164) parameters
+// input: array of MAX_PARAM_LEN (168) parameters
 // output: likelihood of these params in respect to the individuals' params and the moments
 
 #define RENT_REF_PARAM 1.0
@@ -1043,11 +1043,12 @@ static double estimation(float* params)
     lamda33 = lamda33/100.0f;
     set_param(lamda43) // age at arrival - blue part [162]
     lamda43 = lamda43/100.0f;
-    set_param(yuval_sucks) // part time wage factor [163]
+    set_param(part_wage_factor) // part time wage factor [163]
+    set_param(type1_edu_15) // part time wage factor [164]
+    set_param(type1_edu_17) // part time wage factor [165]
+    set_param(type2_edu_15) // part time wage factor [166]
+    set_param(type2_edu_17) // part time wage factor [167]
 
-    float PROB_T1=expf(type1)/(1.0+(expf(type1)+expf(type2)));  
-    float PROB_T2=expf(type2)/(1.0+(expf(type1)+expf(type2)));
-    float PROB_T0=1.0-PROB_T1-PROB_T2;
     // P_W_ERROR[0] = 0, P(x<P_W_ERROR[1]) = 10%, P(x<P_W_ERROR[2]) = 30%, P(x<P_W_ERROR[3]) = 50%, P(x<P_W_ERROR[4]) = 70%, P(x<P_W_ERROR[5]) = 90%
     static const float P_W_ERROR[D_WAGE] = {0.0, -1.281551, -0.524401, 0.0, 0.524401, 1.281551};
     // P(x<P_W_ERROR_RNG[1]) = 20%, P(x<P_W_ERROR_RNG[2]) = 40%, P(x<P_W_ERROR_RNG[3]) = 60%, P(x<P_W_ERROR_RNG[4]) = 80%
@@ -1159,15 +1160,15 @@ static double estimation(float* params)
     }
 #endif
 
+    const unsigned short EDU_LEVELS = 3;
+    const unsigned short edu_lower[EDU_LEVELS] = {0, 15, 17};
+    const unsigned short edu_upper[EDU_LEVELS] = {14, 16, 24};
 #ifdef TRACE
     // house distribution table
     unsigned long house_distribution[TYPE_SIZE][RG_SIZE][T]={{{0}}};
     unsigned long house_distribution_count[TYPE_SIZE][T]={{0}};
     unsigned long house_notype_distribution[RG_SIZE][T]={{0}};
     unsigned long house_notype_distribution_count[T]={0};
-    const unsigned short EDU_LEVELS = 3;
-    const unsigned short edu_lower[EDU_LEVELS] = {0,12,16};
-    const unsigned short edu_upper[EDU_LEVELS] = {11,15,24};
     unsigned long house_notype_edu_distribution[EDU_LEVELS][RG_SIZE][T]={{{0}}};
     unsigned long house_notype_edu_distribution_count[EDU_LEVELS][T]={{0}};
     // white work region distribution
@@ -1236,6 +1237,9 @@ static double estimation(float* params)
 
     // string likelihood per individual    
     double like_arr[OBS];
+    float PROB_T0[OBS];
+    float PROB_T1[OBS];
+    float PROB_T2[OBS];
 #ifdef SIMULATION
     double total_max_utility[T];
     memset(total_max_utility, '\0', sizeof(total_max_utility));
@@ -1278,7 +1282,6 @@ static double estimation(float* params)
             HUSBAND_EDU_arr[I] = 99;
         }
         const unsigned short    HUSBAND_EDU = HUSBAND_EDU_arr[I];
-#ifdef TRACE
         short int               HUSBAND_EDU_LEVEL = -1;
         if (HUSBAND_EDU != 99)
         {
@@ -1291,7 +1294,15 @@ static double estimation(float* params)
                 }
             }
         }
-#endif
+        const unsigned int husband_edu_level_15 = HUSBAND_EDU_LEVEL == 1 ? 1 : 0;
+        const unsigned int husband_edu_level_17 = HUSBAND_EDU_LEVEL == 2 ? 1 : 0;
+        const float type1_edu = type1 + type1_edu_15*husband_edu_level_15 + type1_edu_17*husband_edu_level_17;
+        const float type2_edu = type2 + type2_edu_15*husband_edu_level_15 + type2_edu_17*husband_edu_level_17;
+
+        PROB_T1[I] = expf(type1_edu)/(1.0+(expf(type1_edu)+expf(type2_edu)));  
+        PROB_T2[I] = expf(type2_edu)/(1.0+(expf(type1_edu)+expf(type2_edu)));
+        PROB_T0[I] = 1.0-PROB_T1[I]-PROB_T2[I];
+
 #ifdef SIMULATION
         const unsigned short    IND_FILTER =  (sim_type == MARRIED_SIM) ? IND_FILTER_arr[I] : 1;
 #endif
@@ -1497,10 +1508,10 @@ static double estimation(float* params)
                         } // close dwage             
 
                         wage_ue_2w[rg] = draw_wage(wage_w[0], prob_ue_2w[rg]);          // equal wage if ind come fron ue and got an offer and -inf if didn't
-                        float wage_ue_2b = draw_blue_wage(wage_b[0], prob_ue_2b_full[rg], prob_ue_2b_part[rg], ue_2b_full[rg], yuval_sucks); // equal wage if ind come fron ue and got an offer and -inf if not
+                        float wage_ue_2b = draw_blue_wage(wage_b[0], prob_ue_2b_full[rg], prob_ue_2b_part[rg], ue_2b_full[rg], part_wage_factor); // equal wage if ind come fron ue and got an offer and -inf if not
                         wage_ue_2b += (ue_2b_full[rg] == false ? alfa3/2.0 : 0.0);      // add part time alfa3 if needed
                         wage_work_2w[rg] = draw_wage(wage_w[0], prob_work_2w[rg]);      // equal wage if ind come from and got an offer and -inf if didn't
-                        float wage_work_2b = draw_blue_wage(wage_b[0], prob_work_2b_full[rg], prob_work_2b_part[rg], work_2b_full[rg], yuval_sucks); // equal wage if ind come from and got an offer and -inf
+                        float wage_work_2b = draw_blue_wage(wage_b[0], prob_work_2b_full[rg], prob_work_2b_part[rg], work_2b_full[rg], part_wage_factor); // equal wage if ind come from and got an offer and -inf
                         wage_work_2b += (work_2b_full[rg] == false ? alfa3/2.0 : 0.0);  // add part time alfa3 if needed
 
                         // the equivalent to "wage" when UE is chosen
@@ -1921,10 +1932,10 @@ static double estimation(float* params)
                     const float wage_nonfired_2b_full = draw_wage(wage_b_non_f[rg], prob_nonfired_b);  //equal wage if ind wasn't fired  and -inf if was fired
                     const float wage_nonfired_2b_part = draw_wage(wage_b_non_f[rg]/2.0, prob_nonfired_b) + alfa3/2.0;  //equal wage if ind wasn't fired  and -inf if was fired
                     wage_ue_2w[rg] = draw_wage(wage_w[rg], prob_ue_2w);                           //equal wage if i come fron ue and got an offer and -inf if didn't
-                    float wage_ue_2b = draw_blue_wage(wage_b[rg], prob_ue_2b_full, prob_ue_2b_part, ue_2b_full[rg], yuval_sucks);      //equal wage if i come fron ue and got an offer and -inf if didn't
+                    float wage_ue_2b = draw_blue_wage(wage_b[rg], prob_ue_2b_full, prob_ue_2b_part, ue_2b_full[rg], part_wage_factor);      //equal wage if i come fron ue and got an offer and -inf if didn't
                     wage_ue_2b += (ue_2b_full[rg] == false ? alfa3/2.0 : 0.0);                      // add part time alfa3 if needed
                     wage_work_2w[rg] = draw_wage(wage_w[rg], prob_work_2w);                       //equal wage if ind come from and got an offer and -inf if didn't
-                    float wage_work_2b = draw_blue_wage(wage_b[rg], prob_work_2b_full, prob_work_2b_part, work_2b_full[rg], yuval_sucks);  //equal wage if ind come from and got an offer and -inf if didn't
+                    float wage_work_2b = draw_blue_wage(wage_b[rg], prob_work_2b_full, prob_work_2b_part, work_2b_full[rg], part_wage_factor);  //equal wage if ind come from and got an offer and -inf if didn't
                     wage_work_2b += (work_2b_full[rg] == false ? alfa3/2.0 : 0.0);                  // add part time alfa3 if needed
 
                     const float choose_ue_emax = beta*EMAX(t+1,k_to_index(real_k),rg,0,UE,0);
@@ -2690,7 +2701,7 @@ static double estimation(float* params)
     double likelihood = 0.0;
     for (unsigned short I = 0; I < OBSR; ++I)
     {
-        const double prob = PROB_T0*like_arr[I] + PROB_T2*like_arr[I+OBSR] + PROB_T1*like_arr[I+OBSR*2];
+        const double prob = PROB_T0[I]*like_arr[I] + PROB_T2[I]*like_arr[I+OBSR] + PROB_T1[I]*like_arr[I+OBSR*2];
         double log_prob;
         if (prob < 1e-300)
         {
@@ -2747,9 +2758,18 @@ static double estimation(float* params)
 #endif
 
 #ifdef TRACE
-    printf("\ntype 0 probability = %f\t", PROB_T0);
-    printf("type 1 probability = %f\t", PROB_T1);
-    printf("type 2 probability = %f\t", PROB_T2);
+    float sum_of_prob_t0 = 0.0;
+    float sum_of_prob_t1 = 0.0;
+    float sum_of_prob_t2 = 0.0;
+    for (unsigned short I = 0; I < OBS; ++I)
+    {
+        sum_of_prob_t0 += PROB_T0[I];
+        sum_of_prob_t1 += PROB_T1[I];
+        sum_of_prob_t2 += PROB_T2[I];
+    }
+    printf("\ntype 0 probability = %f\t", sum_of_prob_t0);
+    printf("type 1 probability = %f\t", sum_of_prob_t1);
+    printf("type 2 probability = %f\t", sum_of_prob_t2);
 
     ////////////////////// Occupation Distribution /////////////////////
     printf("\n\noccupation distribution:\n\n");
