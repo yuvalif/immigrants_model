@@ -162,4 +162,9 @@ return for leisure at unemployment,N/A,,,160,150,,alfa3
 hustband's education influence on moving cost,N/A,,,161,0.5,,alfa20
 age at arrival in blue full,87,-3.74,-0.0374,90,-3.74,-0.0374,lamda33
 age at arrival in blue part,87,-3.74,-0.0374,90,-3.74,-0.0374,lamda34
-part time wage factor,,,,,0.5,0.5,yuval_sucks
+part time wage factor,,,,,0.5,0.5,part_wage_factor
+type 1 15y edu,,,,,1,1,type1_edu_15
+type 1 17y edu,,,,,1,1,type1_edu_17
+type 2 15y edu,,,,,1,1,type2_edu_15
+type 2 17y edu,,,,,1,1,type2_edu_17
+
