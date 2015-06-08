@@ -2767,9 +2767,10 @@ static double estimation(float* params)
         sum_of_prob_t1 += PROB_T1[I];
         sum_of_prob_t2 += PROB_T2[I];
     }
-    printf("\ntype 0 probability = %f\t", sum_of_prob_t0);
-    printf("type 1 probability = %f\t", sum_of_prob_t1);
-    printf("type 2 probability = %f\t", sum_of_prob_t2);
+    const float total_sum = (float)OBS;
+    printf("\ntype 0 probability = %f\t", sum_of_prob_t0/total_sum);
+    printf("type 1 probability = %f\t", sum_of_prob_t1/total_sum);
+    printf("type 2 probability = %f\t", sum_of_prob_t2/total_sum);
 
     ////////////////////// Occupation Distribution /////////////////////
     printf("\n\noccupation distribution:\n\n");
