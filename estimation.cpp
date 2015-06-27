@@ -26,6 +26,9 @@ by Osnat Lifshitz, Chemi Gotlibovski (2009)
 // wage discretization macro
 #define get_discrete_index(w) (unsigned short)(((w) < P_W_ERROR_RNG[1]) ?  1 : (((w) < P_W_ERROR_RNG[2]) ? 2 : (((w) < P_W_ERROR_RNG[3]) ? 3 : (((w) <P_W_ERROR_RNG[4]) ? 4 : 5))))
 
+// convert integer state value to string
+#define state_to_string(s) ((s) == 0 ? "UE" : ((s) == 1 ? "WHITE" : ((s) == 2 ? "BLUE (FULL)" : ((s) == 3 ? "BLUE (PART)" : "STATE ERROR"))))
+
 /* 
 Implements the Polar form of the Box-Muller Transformation
 (c) Copyright 1994, Everett F. Carter Jr.
@@ -211,12 +214,12 @@ static bool load_individuals(const char* filename)
                 col_num = sscanf(line, "%hu%hu%hu%hu%f%hu%hu%lu%hu%hu%hu%hu%hu%hu",
                                  &(M_arr[I]), &(KIDS_arr[I]), &(EXP_U_arr[I]), &(SCHOOL_arr[I]),
                                  &(WAGE_arr[I]), &(AGE_arr[I]), &(PERIODS_arr[I]), &(RENT_MORT_arr[I]), &(D_MORT_arr[I]), &(REP1_arr[I]), &(REP2_arr[I]),
-                                 &(REP3_arr[I]), &(TYPE3_arr[I]), &TYPE2_arr[I]);
+                                 &(REP3_arr[I]), &(TYPE2_arr[I]), &TYPE3_arr[I]);
                 if (col_num != COLUMN_NUMBER)
                 {
                     printf("wrong format in file %s number of columns: %d \n", filename, col_num);
                     printf("line[%hu]: %s\n", I, line);
-                    printf("format: M\tKIDS\tEXP_U\tSCHOOL\tWAGE\tAGE\tPERIODS\tRENT_MO\tD_MO\tREP1\tREP2\tREP3\tTYPE3\tTYPE2\n");
+                    printf("format: M\tKIDS\tEXP_U\tSCHOOL\tWAGE\tAGE\tPERIODS\tRENT_MO\tD_MO\tREP1\tREP2\tREP3\tTYPE2\tTYPE3\n");
                     fclose(fp);
                     return false;
                 } 
@@ -226,7 +229,7 @@ static bool load_individuals(const char* filename)
                     printf("line[%hu]: %hu\t%hu\t%hu\t%hu\t%f\t%hu\t%hu\t%lu\t%hu\t%hu\t%hu\t%hu\t%hu\t%hu\n", I, M_arr[I], KIDS_arr[I],
                          EXP_U_arr[I], SCHOOL_arr[I],
                          WAGE_arr[I], AGE_arr[I], PERIODS_arr[I], RENT_MORT_arr[I], D_MORT_arr[I], REP1_arr[I], REP2_arr[I],
-                         REP3_arr[I], TYPE3_arr[I], TYPE2_arr[I]);
+                         REP3_arr[I], TYPE2_arr[I], TYPE23arr[I]);
 #endif
                     ++I;
                 }
@@ -2703,10 +2706,10 @@ static double estimation(float* params)
     {
         const double prob = PROB_T0[I]*like_arr[I] + PROB_T2[I]*like_arr[I+OBSR] + PROB_T1[I]*like_arr[I+OBSR*2];
         double log_prob;
-        if (prob < 1e-300)
+        if (prob < 1e-300 || prob == -INFINITY  || prob == INFINITY || prob == -NAN || prob == NAN)
         {
 #ifdef INFO
-            printf("-inf value was calculated for I=%hu\n******************************************************\n", I);
+            printf("failed to calculated value for I=%hu\n******************************************************\n", I);
 #endif
             log_prob = -110.0;
         }
@@ -2763,14 +2766,14 @@ static double estimation(float* params)
     float sum_of_prob_t2 = 0.0;
     for (unsigned short I = 0; I < OBS; ++I)
     {
+        printf("t0=%f t1=%f t2=%f\n", PROB_T0[I], PROB_T1[I], PROB_T2[I]);
         sum_of_prob_t0 += PROB_T0[I];
         sum_of_prob_t1 += PROB_T1[I];
         sum_of_prob_t2 += PROB_T2[I];
     }
-    const float total_sum = (float)OBS;
-    printf("\ntype 0 probability = %f\t", sum_of_prob_t0/total_sum);
-    printf("type 1 probability = %f\t", sum_of_prob_t1/total_sum);
-    printf("type 2 probability = %f\t", sum_of_prob_t2/total_sum);
+    printf("\ntype 0 probability = %f\t", sum_of_prob_t0/(float)OBS);
+    printf("type 1 probability = %f\t", sum_of_prob_t1/(float)OBS);
+    printf("type 2 probability = %f\t", sum_of_prob_t2/(float)OBS);
 
     ////////////////////// Occupation Distribution /////////////////////
     printf("\n\noccupation distribution:\n\n");
