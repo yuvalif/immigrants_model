@@ -2865,20 +2865,37 @@ static double estimation(float* params)
     }
 
     ////////////////////// Last Whitw Wage  /////////////////////
+    unsigned long sum_count_267 = 0;
+    float sum_wage_267 = 0.0f;
     printf("\n\naverage white wage in last period:\n\n");
-    printf("------------------------------------------------------------------------------------------------------------------------------------\n");
-    printf(" ty |      1       |       2       |       3       |       4       |       5       |       6       |       7       |    average    |\n");
-    printf("------------------------------------------------------------------------------------------------------------------------------------\n");
+    printf("---------------------------------------------------------------------------------------------------\n");
+    //printf(" ty |      1       |       2       |       3       |       4       |       5       |       6       |       7       |    average    |\n");
+    printf(" ty |      1       |       3       |       4       |       5       |     267      |    average    |\n");
+    printf("---------------------------------------------------------------------------------------------------\n");
     for (unsigned short ty = 0; ty < TYPE_SIZE; ++ty)
     {
         printf("%hu\t", ty);
         unsigned long sum_count = 0;
         float sum_wage = 0.0f;
+        sum_count_267 = 0;
+        sum_wage_267 = 0.0f;
         for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
         {
             if (wage_white_rg_count[ty][rg] > 0)
             {
-                printf("%.3f\t", wage_white_rg_sum[ty][rg]/(float)wage_white_rg_count[ty][rg]);
+                if (rg == 1 || rg == 5 || rg == 6) // the 267 region
+                {
+                    sum_count_267 += wage_white_rg_count[ty][rg];
+                    sum_wage_267 += wage_white_rg_sum[ty][rg];
+                    if (rg == 6)
+                    {
+                        printf("%.3f\t", sum_wage_267/(float)sum_count_267);
+                    }
+                }
+                else // other regions
+                {
+                    printf("%.3f\t", wage_white_rg_sum[ty][rg]/(float)wage_white_rg_count[ty][rg]);
+                }
                 sum_count += wage_white_rg_count[ty][rg];
                 sum_wage += wage_white_rg_sum[ty][rg];
             }
@@ -2897,18 +2914,32 @@ static double estimation(float* params)
         }
     }
     // average across types per region
-    printf("------------------------------------------------------------------------------------------------------------------------------------\n");
+    printf("---------------------------------------------------------------------------------------------------\n");
     printf("avg\t");
+    sum_count_267 = 0;
+    sum_wage_267 = 0.0f;
     for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
     {
-        printf("%.3f\t", wage_white_notype_rg_sum[rg]/(float)wage_white_notype_rg_count[rg]);
+        if (rg == 1 || rg == 5 || rg == 6) // the 267 region
+        {
+            sum_count_267 += wage_white_notype_rg_count[rg];
+            sum_wage_267 += wage_white_notype_rg_sum[rg];
+            if (rg == 6)
+            {
+                printf("%.3f\t", sum_wage_267/(float)sum_count_267);
+            }
+        }
+        else // other regions
+        {
+            printf("%.3f\t", wage_white_notype_rg_sum[rg]/(float)wage_white_notype_rg_count[rg]);
+        }
     }
 
     // average across all regions
     printf("%.3f\t", wage_white_notype_sum/(float)wage_white_notype_count);
 
     // real values
-    printf("\n------------------------------------------------------------------------------------------------------------------------------------\n");
+    printf("\n-------------------------------------------------------------------------------------------------\n");
     memset(wage_white_rg_sum, '\0', sizeof(wage_white_rg_sum));
     memset(wage_white_rg_count, '\0', sizeof(wage_white_rg_count));
     for (unsigned short I = 0; I < OBSR; ++I)
@@ -2923,11 +2954,25 @@ static double estimation(float* params)
         printf("real\t");
         unsigned long sum_count = 0;
         float sum_wage = 0.0f;
+        sum_count_267 = 0;
+        sum_wage_267 = 0.0f;
         for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
         {
             if (wage_white_rg_count[0][rg] > 0)
             {
-                printf("%.3f\t", wage_white_rg_sum[0][rg]/(float)wage_white_rg_count[0][rg]);
+                if (rg == 1 || rg == 5 || rg == 6) // the 267 region
+                {
+                    sum_count_267 += wage_white_rg_count[0][rg];
+                    sum_wage_267 += wage_white_rg_sum[0][rg];
+                    if (rg == 6)
+                    {
+                        printf("%.3f\t", sum_wage_267/(float)sum_count_267);
+                    }
+                }
+                else // other regions
+                {
+                    printf("%.3f\t", wage_white_rg_sum[0][rg]/(float)wage_white_rg_count[0][rg]);
+                }
                 sum_count += wage_white_rg_count[0][rg];
                 sum_wage += wage_white_rg_sum[0][rg];
             }
@@ -3043,7 +3088,8 @@ static double estimation(float* params)
         {
             if (wage_blue_rg_count[ty][rg] > 0)
             {
-                printf("%.4f\t", wage_blue_rg_sum[ty][rg][PART]/(float)wage_blue_rg_count[ty][rg][PART]);
+                //printf("%.4f\t", wage_blue_rg_sum[ty][rg][PART]/(float)wage_blue_rg_count[ty][rg][PART]);
+                printf("--------\t");
                 sum_count += wage_blue_rg_count[ty][rg][PART];
                 sum_wage += wage_blue_rg_sum[ty][rg][PART];
             }
@@ -3066,7 +3112,8 @@ static double estimation(float* params)
     printf("avg\t");
     for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
     {
-        printf("%.4f\t",  wage_blue_rg_notype_sum[rg][PART]/(float)wage_blue_rg_notype_count[rg][PART]);
+        //printf("%.4f\t",  wage_blue_rg_notype_sum[rg][PART]/(float)wage_blue_rg_notype_count[rg][PART]);
+        printf("--------\t");
     }
     
     // average across all regions
@@ -3317,7 +3364,7 @@ static double estimation(float* params)
     printf("%hu\t-----\t0.000000\t0.000000\t0.000000\t0.000000\t0.000000\t0.000000\t100.0000\n", 7);
 
     ////////////////////// House Region Distribution per Education Level//////////////////////
-    for (unsigned int edu_level = 0; edu_level < EDU_LEVELS; ++edu_level)
+    /*for (unsigned int edu_level = 0; edu_level < EDU_LEVELS; ++edu_level)
     {
         printf("\n\nhousing region distribution (all types) for education level %hu-%hu:\n\n", edu_lower[edu_level], edu_upper[edu_level]);
         printf("-----------------------------------------------------------------------------------------------------------------------------\n");
@@ -3381,7 +3428,7 @@ static double estimation(float* params)
             }
             printf("\n");
         }
-    }
+    }*/
 
     ////////////////////// Occupation Distribution per Education Level//////////////////////
     for (unsigned int edu_level = 0; edu_level < EDU_LEVELS; ++edu_level)
