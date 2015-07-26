@@ -632,7 +632,7 @@ static bool load_moments(const char* filename)
     }
 }
 
-const unsigned short int MAX_PARAM_LEN = 168;   //# of parameters
+const unsigned short int MAX_PARAM_LEN = 151;   //# of parameters
 #define set_param_array(param_name,size) float param_name[(size)]; for (j = 0; j < (size); ++i, ++j) param_name[j] = params[i]; 
 #define set_param(param_name) float param_name = params[i]; ++i;
 
@@ -832,7 +832,7 @@ static const unsigned int MARRIED_SIM = 6;
 #endif
 
 // estimation function used inside the optimization process to find the params the find minimum likelihood
-// input: array of MAX_PARAM_LEN (168) parameters
+// input: array of MAX_PARAM_LEN (151) parameters
 // output: likelihood of these params in respect to the individuals' params and the moments
 
 #define RENT_REF_PARAM 1.0
@@ -960,8 +960,8 @@ static double estimation(float* params)
     beta20[5] = beta20[1];
     beta20[6] = beta20[1];
     float beta21_1 = params[i]/100.0f; ++i;// schooling [48]
-    float beta21_2 = params[i]/100.0f; ++i;// schooling [49]
     float beta21_3 = params[i]/100.0f; ++i;// schooling [50]
+    float beta21_2 = beta21_3;
     float beta22 = params[i]/1000.0f; ++i;// experience in USSR [51]
     float beta23 = params[i]/1000.0f; ++i;// exp^2  in USSR [52]
     float beta24 = params[i]/100.0f; ++i;// experience in Israel [53]
@@ -976,8 +976,8 @@ static double estimation(float* params)
          beta30[j] = params[i]/10.0f;
     }
     float beta31_1 = params[i] / 100.0f; ++i; // schooling[65]
-    float beta31_2 = params[i] / 100.0f; ++i; // schooling[66]
     float beta31_3 = params[i] / 100.0f; ++i; //schooling[67]
+    float beta31_2 = beta31_3;
     float beta32 = beta22; // experience in USSR - as in white collar
     float beta33 = beta23; // exp^2  in USSR - as in white collar
     set_param(beta34)// experience in Israel[68]
@@ -1008,8 +1008,8 @@ static double estimation(float* params)
     // Job offer parameters - white collar
     set_param_array(lamda20, RG_SIZE) // constant for every region[79...85]
     float lamda21_1 = params[i]/10.0f; ++i; // schooling[86]
-    float lamda21_2 = params[i]/10.0f; ++i; //schooling [87]
     float lamda21_3 = params[i]/10.0f; ++i; //schooling[88]
+    float lamda21_2 = lamda21_3;
     set_param(lamda22) // unemployment[89]
     set_param(lamda23) // age at arrival[90]
     lamda23 = lamda23/100.0f;
@@ -1051,9 +1051,7 @@ static double estimation(float* params)
     set_param_array(R, RG_SIZE) //rent by area [119...125]
     
     set_param_array(psi1, RG_SIZE) // Married by region[126...132]
-    set_param_array(psi2, RG_SIZE) // men education by region[133...139]
     set_param_array(psi3, RG_SIZE) // married*kids by region[140...146]
-    set_param_array(psi4, RG_SIZE) // married*women age by region[147...153]
 
     set_param(lamda29) // kids w [154]
     set_param(lamda39) // kids b full [155]
@@ -1261,7 +1259,9 @@ static double estimation(float* params)
 
     // string likelihood per individual    
     double like_arr[OBSR];
+#ifdef TRACE
     float PROB_T0[OBSR];
+#endif
     float PROB_T1[OBSR];
     float PROB_T2[OBSR];
 #ifdef SIMULATION
@@ -1345,9 +1345,9 @@ static double estimation(float* params)
 
         PROB_T1[I] = expf(type1_edu)/(1.0+(expf(type1_edu)+expf(type2_edu)));  
         PROB_T2[I] = expf(type2_edu)/(1.0+(expf(type1_edu)+expf(type2_edu)));
+#ifdef TRACE
         PROB_T0[I] = 1.0-PROB_T1[I]-PROB_T2[I];
-        //assert(fabs(PROB_T0[I] + PROB_T1[I] + PROB_T2[I] -  1.0) > 1e-3);
-
+#endif
         rent_for_all_regions[type] = gama1*M+gama2*KIDS+gama3*TYPE1+gama4*TYPE2; //global rent without gama0 by region
 
         moving_cost[type] = TYPE1*alfa2[1]+TYPE2*alfa2[2]+TYPE0*alfa2[0] + alfa20*HUSBAND_EDU;
@@ -1356,7 +1356,7 @@ static double estimation(float* params)
             const_taste[rg] = teta0[rg]+teta1[rg]*REP1+teta2[rg]*REP2+teta3[rg]*REP3; //taste for housing in a specific region - equation 5 page 13
             // define const taste, move the final calculation into draws
             rent[rg][type] = 6.0f*expf(gama0[rg]+rent_for_all_regions[type])*RENT_REF_PARAM; // full cost of housing rent/mor - equation 6
-            husband[rg] = psi1[rg]*M + psi2[rg]*M*HUSBAND_EDU + psi3[rg]*M*KIDS + psi4[rg]*M*AGE;
+            husband[rg] = psi1[rg]*M  + psi3[rg]*M*KIDS;
 #ifdef SIMULATION
             if (sim_type == RENT_SIM)
             {
@@ -2737,7 +2737,6 @@ static double estimation(float* params)
     double likelihood = 0.0;
     for (unsigned short I = 0; I < OBSR; ++I)
     {
-        //const double prob = PROB_T0[I]*like_arr[I] + PROB_T2[I]*like_arr[I+OBSR] + PROB_T1[I]*like_arr[I+OBSR*2];
         const double prob = like_arr[I];
         double log_prob;
         if (prob < 1e-300 || prob == -INFINITY  || prob == INFINITY || prob == -NAN || prob == NAN)
@@ -2869,7 +2868,6 @@ static double estimation(float* params)
     float sum_wage_267 = 0.0f;
     printf("\n\naverage white wage in last period:\n\n");
     printf("---------------------------------------------------------------------------------------------------\n");
-    //printf(" ty |      1       |       2       |       3       |       4       |       5       |       6       |       7       |    average    |\n");
     printf(" ty |      1       |       3       |       4       |       5       |     267      |    average    |\n");
     printf("---------------------------------------------------------------------------------------------------\n");
     for (unsigned short ty = 0; ty < TYPE_SIZE; ++ty)
@@ -3088,7 +3086,6 @@ static double estimation(float* params)
         {
             if (wage_blue_rg_count[ty][rg] > 0)
             {
-                //printf("%.4f\t", wage_blue_rg_sum[ty][rg][PART]/(float)wage_blue_rg_count[ty][rg][PART]);
                 printf("--------\t");
                 sum_count += wage_blue_rg_count[ty][rg][PART];
                 sum_wage += wage_blue_rg_sum[ty][rg][PART];
@@ -3112,7 +3109,6 @@ static double estimation(float* params)
     printf("avg\t");
     for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
     {
-        //printf("%.4f\t",  wage_blue_rg_notype_sum[rg][PART]/(float)wage_blue_rg_notype_count[rg][PART]);
         printf("--------\t");
     }
     
@@ -3364,7 +3360,7 @@ static double estimation(float* params)
     printf("%hu\t-----\t0.000000\t0.000000\t0.000000\t0.000000\t0.000000\t0.000000\t100.0000\n", 7);
 
     ////////////////////// House Region Distribution per Education Level//////////////////////
-    /*for (unsigned int edu_level = 0; edu_level < EDU_LEVELS; ++edu_level)
+    for (unsigned int edu_level = 0; edu_level < EDU_LEVELS; ++edu_level)
     {
         printf("\n\nhousing region distribution (all types) for education level %hu-%hu:\n\n", edu_lower[edu_level], edu_upper[edu_level]);
         printf("-----------------------------------------------------------------------------------------------------------------------------\n");
@@ -3428,7 +3424,7 @@ static double estimation(float* params)
             }
             printf("\n");
         }
-    }*/
+    }
 
     ////////////////////// Occupation Distribution per Education Level//////////////////////
     for (unsigned int edu_level = 0; edu_level < EDU_LEVELS; ++edu_level)
