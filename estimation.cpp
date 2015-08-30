@@ -632,7 +632,7 @@ static bool load_moments(const char* filename)
     }
 }
 
-const unsigned short int MAX_PARAM_LEN = 151;   //# of parameters
+const unsigned short int MAX_PARAM_LEN = 152;   //# of parameters
 #define set_param_array(param_name,size) float param_name[(size)]; for (j = 0; j < (size); ++i, ++j) param_name[j] = params[i]; 
 #define set_param(param_name) float param_name = params[i]; ++i;
 
@@ -832,7 +832,7 @@ static const unsigned int MARRIED_SIM = 6;
 #endif
 
 // estimation function used inside the optimization process to find the params the find minimum likelihood
-// input: array of MAX_PARAM_LEN (151) parameters
+// input: array of MAX_PARAM_LEN (152) parameters
 // output: likelihood of these params in respect to the individuals' params and the moments
 
 #define RENT_REF_PARAM 1.0
@@ -960,37 +960,37 @@ static double estimation(float* params)
     beta20[5] = beta20[1];
     beta20[6] = beta20[1];
     float beta21_1 = params[i]/100.0f; ++i;// schooling [48]
-    float beta21_3 = params[i]/100.0f; ++i;// schooling [50]
+    float beta21_3 = params[i]/100.0f; ++i;// schooling [49]
     float beta21_2 = beta21_3;
-    float beta22 = params[i]/1000.0f; ++i;// experience in USSR [51]
-    float beta23 = params[i]/1000.0f; ++i;// exp^2  in USSR [52]
-    float beta24 = params[i]/100.0f; ++i;// experience in Israel [53]
-    float beta25 = params[i]/1000.0f; ++i;// exp^2 in Israel [54]
-    float beta26 = params[i]/10.0f; ++i;// age over 40 [55]
-    float beta27 = params[i]/10.0f; ++i;// type1 [56]
-    float beta28 = params[i]/10.0f; ++i;// type2 [57]
+    float beta22 = params[i]/1000.0f; ++i;// experience in USSR [50]
+    float beta23 = params[i]/1000.0f; ++i;// exp^2  in USSR [51]
+    float beta24 = params[i]/100.0f; ++i;// experience in Israel [52]
+    float beta25 = params[i]/1000.0f; ++i;// exp^2 in Israel [53]
+    float beta26 = params[i]/10.0f; ++i;// age over 40 [54]
+    float beta27 = params[i]/10.0f; ++i;// type1 [55]
+    float beta28 = params[i]/10.0f; ++i;// type2 [56]
     // Wage parameters in blue collar
-    float beta30[RG_SIZE]; // constant for every region[58...64] 
+    float beta30[RG_SIZE]; // constant for every region[57...63] 
     for (j = 0; j < RG_SIZE; ++j, ++i)
     {
          beta30[j] = params[i]/10.0f;
     }
-    float beta31_1 = params[i] / 100.0f; ++i; // schooling[65]
-    float beta31_3 = params[i] / 100.0f; ++i; //schooling[67]
+    float beta31_1 = params[i] / 100.0f; ++i; // schooling[64]
+    float beta31_3 = params[i] / 100.0f; ++i; //schooling[65]
     float beta31_2 = beta31_3;
     float beta32 = beta22; // experience in USSR - as in white collar
     float beta33 = beta23; // exp^2  in USSR - as in white collar
-    set_param(beta34)// experience in Israel[68]
+    set_param(beta34)// experience in Israel[66]
     beta34 = beta34 / 100.0f;
-    set_param(beta35)// exp^2 in Israel[69]
+    set_param(beta35)// exp^2 in Israel[67]
     beta35 = beta35 / 1000.0f;
     float beta36 = beta26; // age over 40 - as in white collar
-    set_param(beta37)// type1[70]
+    set_param(beta37)// type1[68]
     beta37 = beta37 / 10.0f;
-    set_param(beta38)// type2[71]
+    set_param(beta38)// type2[69]
     beta38 = beta38 / 10.0f;
     // Travelling Costs
-    float tc[TC_SIZE]; //[72..74]
+    float tc[TC_SIZE]; //[70..72]
     for (j = 0; j < TC_SIZE; ++j, ++i)
     {
         tc[j] = expf(params[i]);
@@ -1000,76 +1000,79 @@ static double estimation(float* params)
     // tc3 - tc23,tc24,tc34
     // tc4 - 0
     // probability of Losing Job, by Type
-    set_param_array(aw, STATE_SIZE) // Probability of Losing Job in white color - type 0,1,2[75..77]
-    float ab[STATE_SIZE]; // Probability of Losing Job in blue color - type 0 - types 1 and 2 are the same as in white[78]
+    set_param_array(aw, STATE_SIZE) // Probability of Losing Job in white color - type 0,1,2[73..75]
+    float ab[STATE_SIZE]; // Probability of Losing Job in blue color - type 0 - types 1 and 2 are the same as in white[76]
     ab[0] = params[i]; ++i;
     ab[1] = aw[1];
     ab[2] = aw[2];
     // Job offer parameters - white collar
-    set_param_array(lamda20, RG_SIZE) // constant for every region[79...85]
-    float lamda21_1 = params[i]/10.0f; ++i; // schooling[86]
-    float lamda21_3 = params[i]/10.0f; ++i; //schooling[88]
+    set_param_array(lamda20, RG_SIZE) // constant for every region[77...83]
+    float lamda21_1 = params[i]/10.0f; ++i; // schooling[84]
+    float lamda21_3 = params[i]/10.0f; ++i; //schooling[85]
     float lamda21_2 = lamda21_3;
-    set_param(lamda22) // unemployment[89]
-    set_param(lamda23) // age at arrival[90]
+    set_param(lamda22) // unemployment[86]
+    set_param(lamda23) // age at arrival[87]
     lamda23 = lamda23/100.0f;
-    set_param(lamda25) // time[91]
-    set_param(lamda26) // time^2[92]
-    set_param(lamda27) // type1[93]
-    set_param(lamda28) // type2[94]
-    set_param(psai_w) // t==0 - a new one[95] 
-    set_param(psai_b) // t==0 - a new one[96] 
+    set_param(lamda25) // time[88]
+    set_param(lamda26) // time^2[89]
+    set_param(lamda27) // type1[90]
+    set_param(lamda28) // type2[91]
+    set_param(psai_w) // t==0 - a new one[92]
+    set_param(psai_b) // t==0 - a new one[93]
 
     // Job (full time)  offer parameters - blue collar
-    set_param_array(lamda30, RG_SIZE) // constant for every region[97...103]
+    set_param_array(lamda30, RG_SIZE) // constant for every region[94...100]
     //float lamda31 = lamda21; // schooling - the same as in white collar
     float lamda32 = lamda22; // unemployment - the same as in white collar
-    set_param(lamda35) // time[104]
-    set_param(lamda36) // time^2[105]
-    set_param(lamda37) // type1[106]
-    set_param(lamda38) // type2[107]
+    set_param(lamda35) // time[101]
+    set_param(lamda36) // time^2[102]
+    set_param(lamda37) // type1[103]
+    set_param(lamda38) // type2[104]
     // type probability
-    set_param(type1) // type1 probability[108]
-    set_param(type2) // type2 probability[109]
+    set_param(type1) // type1 probability[105]
+    set_param(type2) // type2 probability[106]
     // Standard deviation of measurement errors
-    set_param(error_w) // Standard deviation of measurement errors for wages[110]
+    set_param(error_w) // Standard deviation of measurement errors for wages[107]
     error_w = error_w / 10.0f;
-    set_param(error_h) // Standard deviation of measurement errors for houseing[111]
+    set_param(error_h) // Standard deviation of measurement errors for houseing[108]
     error_h = expf(error_h / 10.0f);
-    set_param(error_c) // Base classification error rate[112]
+    set_param(error_c) // Base classification error rate[109]
     error_c = expf(error_c);
     error_c = error_c/(1.0f+error_c);
     // sigma
-    set_param_array(sgma, 3) // sigma for white and blue collar and unemployment [113...115]
+    set_param_array(sgma, 3) // sigma for white and blue collar and unemployment [110...112]
     sgma[0] = expf(sgma[0]);
     sgma[1] = expf(sgma[1]);
-    set_param(wage_error) //punishment for miss the region or occupation in wage [116]
+    set_param(wage_error) //punishment for miss the region or occupation in wage [113]
     wage_error = expf(wage_error);      
-    set_param(row_w) // serial corellation for white collar [117]
-    set_param(row_b) // serial corellation for blue collar  [118]
+    set_param(row_w) // serial corellation for white collar [114]
+    set_param(row_b) // serial corellation for blue collar  [115]
 
-    set_param_array(R, RG_SIZE) //rent by area [119...125]
+    set_param_array(R, RG_SIZE) //rent by area [116...122]
     
-    set_param_array(psi1, RG_SIZE) // Married by region[126...132]
-    set_param_array(psi3, RG_SIZE) // married*kids by region[140...146]
+    set_param_array(psi1, RG_SIZE) // Married by region[123...129]
+    set_param_array(psi3, RG_SIZE) // married*kids by region[130...136]
 
-    set_param(lamda29) // kids w [154]
-    set_param(lamda39) // kids b full [155]
-    set_param(lamda49) // kids b part [156]
-    set_param(lamda45) // time for part time blue  [157]
-    set_param(lamda46) // time square for part time blue [158]
+    set_param(lamda29) // kids w [137]
+    set_param(lamda39) // kids b full [138]
+    set_param(lamda49) // kids b part [139]
+    set_param(lamda45) // time for part time blue  [140]
+    set_param(lamda46) // time square for part time blue [141]
 
-    set_param(alfa3) // return for leisure at unemployment, 0.5*alfa3 is return for leisure at part time [159]
-    set_param(alfa20) // hustband's education influence on moving cost [160]
-    set_param(lamda33) // age at arrival - blue full [161]
+    set_param(alfa3) // return for leisure at unemployment, 0.5*alfa3 is return for leisure at part time [142]
+    set_param(alfa20) // hustband's education influence on moving cost [143]
+    set_param(lamda33) // age at arrival - blue full [144]
     lamda33 = lamda33/100.0f;
-    set_param(lamda43) // age at arrival - blue part [162]
+    set_param(lamda43) // age at arrival - blue part [145]
     lamda43 = lamda43/100.0f;
-    set_param(part_wage_factor) // part time wage factor [163]
-    set_param(type1_edu_15) // part time wage factor [164]
-    set_param(type1_edu_17) // part time wage factor [165]
-    set_param(type2_edu_15) // part time wage factor [166]
-    set_param(type2_edu_17) // part time wage factor [167]
+    set_param(part_wage_factor) // part time wage factor [146]
+    set_param(type1_edu_15) // part time wage factor [147]
+    set_param(type1_edu_17) // part time wage factor [148]
+    set_param(type2_edu_15) // part time wage factor [149]
+    set_param(type2_edu_17) // part time wage factor [150]
+    set_param(moving_cost_0) // moving cost from region 0 to any region [151]
+    moving_cost_0 = -expf(moving_cost_0);
+    //printf("%f\n", moving_cost_0); DEBUG
 
     // P_W_ERROR[0] = 0, P(x<P_W_ERROR[1]) = 10%, P(x<P_W_ERROR[2]) = 30%, P(x<P_W_ERROR[3]) = 50%, P(x<P_W_ERROR[4]) = 70%, P(x<P_W_ERROR[5]) = 90%
     static const float P_W_ERROR[D_WAGE] = {0.0, -1.281551, -0.524401, 0.0, 0.524401, 1.281551};
@@ -2021,7 +2024,16 @@ static double estimation(float* params)
                 {
                     for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                     {
-                        const float tmp_moving_cost = (t == 0 ? 0.0 : (from_h_rg != rg ? moving_cost[type] : 0.0));
+                        float tmp_moving_cost = 0.0;
+                        if (t != 0 && from_h_rg != rg)
+                        {
+                            tmp_moving_cost = moving_cost[type];
+                            if (from_h_rg == 0)
+                            {
+                                tmp_moving_cost += moving_cost_0;
+                            }
+                            //printf("%d from %hu to %hu %f\n", t, from_h_rg, rg, tmp_moving_cost); DEBUG
+                        }
                         // stay in ue
                         choices[rg] = choose_ue[rg] - tmp_moving_cost;
                         // move to blue accoreding to full/part
@@ -2037,7 +2049,16 @@ static double estimation(float* params)
                 {
                     for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                     {
-                        const float tmp_moving_cost = (t == 0 ? 0.0 : (from_h_rg != rg ? moving_cost[type] : 0.0));
+                        float tmp_moving_cost = 0.0;
+                        if (t != 0 && from_h_rg != rg)
+                        {
+                            tmp_moving_cost = moving_cost[type];
+                            if (from_h_rg == 0)
+                            {
+                                tmp_moving_cost += moving_cost_0;
+                            }
+                            //printf("%d from %hu to %hu %f\n", t, from_h_rg, rg, tmp_moving_cost); DEBUG
+                        }
                         // move to ue
                         choices[rg] = choose_ue[rg] - tmp_moving_cost;
 						// stay in blue accoreding to full/part
@@ -2075,7 +2096,16 @@ static double estimation(float* params)
                 {
                     for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                     {
-                        const float tmp_moving_cost = (t == 0 ? 0.0 : (from_h_rg != rg ? moving_cost[type] : 0.0));
+                        float tmp_moving_cost = 0.0;
+                        if (t != 0 && from_h_rg != rg)
+                        {
+                            tmp_moving_cost = moving_cost[type];
+                            if (from_h_rg == 0)
+                            {
+                                tmp_moving_cost += moving_cost_0;
+                            }
+                            //printf("%d from %hu to %hu %f\n", t, from_h_rg, rg, tmp_moving_cost); DEBUG
+                        }
                         // move to ue
                         choices[rg] = choose_ue[rg]- tmp_moving_cost;
                         // move to blue accoreding to full/part
