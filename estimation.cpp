@@ -210,6 +210,7 @@ unsigned short TYPE1_arr[OBSR];     // dummy that get 1 of individual is type 1
 unsigned short TYPE2_arr[OBSR];     // dummy that get 1 of individual is type 2 
 // type 0 is if not 1 or 2
 unsigned short HUSBAND_EDU_arr[OBSR];  // husband education array
+float USSR_ENG_EXP_arr[OBSR];  // USSR engineer experience array
 
 // loading from file to global variables
 static bool load_individuals(const char* filename)
@@ -376,6 +377,59 @@ static bool load_future_intrest(const char* filename)
 }
 
 #endif // SIMULATION
+
+// loading from file to global variables
+static bool load_ussr_eng_exp(const char* filename)
+{
+    const int COLUMN_NUMBER = 1;
+
+    FILE* fp = fopen(filename,"r");
+    if (fp)
+    {
+        char line[LINE_MAX];
+        unsigned short I = 0;
+        int col_num = 0;
+#ifdef TRACE_LOAD
+        printf("Loading %s\n", filename);
+        printf("============================================================\n");
+#endif
+        while (I < OBSR)
+        {
+            if (fgets(line, LINE_MAX, fp) != 0)
+            {
+                col_num = sscanf(line, "%f", &(USSR_ENG_EXP_arr[I]));
+                if (col_num != COLUMN_NUMBER)
+                {
+                    printf("wrong format in file %s number of columns: %d \n", filename, col_num);
+                    printf("line[%hu]: %s\n", I, line);
+                    printf("format: USSR_ENG_EXP\n");
+                    fclose(fp);
+                    return false;
+                } 
+                else
+                {
+#ifdef TRACE_LOAD
+                    printf("line[%hu]: %f\n", I, USSR_ENG_EXP_arr[I]);
+#endif
+                    ++I;
+                }
+            } 
+            else
+            {
+                printf("erorr [%s] reading file [%s] at line [%hu]\n", strerror(errno), filename, I);
+                fclose(fp);
+                return false;
+            }
+        }
+        fclose(fp);
+        return true;
+    } 
+    else
+    {
+        printf("failed to open USSR engineer experience file %s\n", filename);
+        return false;
+    }
+}
 
 // loading from file to global variables
 static bool load_husband_edu(const char* filename)
@@ -632,7 +686,7 @@ static bool load_moments(const char* filename)
     }
 }
 
-const unsigned short int MAX_PARAM_LEN = 152;   //# of parameters
+const unsigned short int MAX_PARAM_LEN = 153;   //# of parameters
 #define set_param_array(param_name,size) float param_name[(size)]; for (j = 0; j < (size); ++i, ++j) param_name[j] = params[i]; 
 #define set_param(param_name) float param_name = params[i]; ++i;
 
@@ -832,7 +886,7 @@ static const unsigned int MARRIED_SIM = 6;
 #endif
 
 // estimation function used inside the optimization process to find the params the find minimum likelihood
-// input: array of MAX_PARAM_LEN (152) parameters
+// input: array of MAX_PARAM_LEN (153) parameters
 // output: likelihood of these params in respect to the individuals' params and the moments
 
 #define RENT_REF_PARAM 1.0
@@ -1072,7 +1126,7 @@ static double estimation(float* params)
     set_param(type2_edu_17) // part time wage factor [150]
     set_param(moving_cost_0) // moving cost from region 0 to any region [151]
     moving_cost_0 = -expf(moving_cost_0);
-    //printf("%f\n", moving_cost_0); DEBUG
+    set_param(lamda233) // return on experience in USSR as engineer [152]
 
     // P_W_ERROR[0] = 0, P(x<P_W_ERROR[1]) = 10%, P(x<P_W_ERROR[2]) = 30%, P(x<P_W_ERROR[3]) = 50%, P(x<P_W_ERROR[4]) = 70%, P(x<P_W_ERROR[5]) = 90%
     static const float P_W_ERROR[D_WAGE] = {0.0, -1.281551, -0.524401, 0.0, 0.524401, 1.281551};
@@ -1288,6 +1342,7 @@ static double estimation(float* params)
 #else
     unsigned short          IND_FILTER =  (sim_type == MARRIED_SIM) ? IND_FILTER_arr[I] : 1;
 #endif
+    const float             USSR_ENG_EXP = USSR_ENG_EXP_arr[I];
     float rent[RG_SIZE][TYPE_SIZE];
     float original_rent[RG_SIZE][TYPE_SIZE];
     float prob_nonfired_w[TYPE_SIZE];
@@ -1377,7 +1432,7 @@ static double estimation(float* params)
         //probability of not losing your job in blue collar
         prob_nonfired_b[type] = 1.0f/(1.0f + expf(TYPE1*ab[1]+TYPE2*ab[2]+TYPE0*ab[0]));
         const_lamda_work_2w[type] = (lamda21_1*SCHOOL1 + lamda21_2*SCHOOL2 + lamda21_3*SCHOOL3) + 
-                                            lamda23*AGE+lamda27*TYPE1+lamda28*TYPE2+lamda29*KIDS; //part of the probability of getting job offer in white - page 13
+                                            lamda23*AGE+lamda27*TYPE1+lamda28*TYPE2+lamda29*KIDS+lamda233*USSR_ENG_EXP; //part of the probability of getting job offer in white - page 13
         const_lamda_work_2b_full[type] = lamda33*AGE+lamda37*TYPE1+lamda38*TYPE2+lamda39*KIDS; //part of the probability of getting job offer in blue - page 13
         const_lamda_work_2b_part[type] = lamda43*AGE+lamda37*TYPE1+lamda38*TYPE2+lamda49*KIDS; //part of the probability of getting job offer in blue - page 13
         t_const_tmp_w[type] = (beta21_1*SCHOOL1 + beta21_2*SCHOOL2 + beta21_3*SCHOOL3) + 
@@ -3594,7 +3649,8 @@ static unsigned short load_dynamic_index(const char* filename, unsigned short* i
 static const char* IND_DATA_FILENAME = "ind_data_3.txt";
 static const char* MOMENTS_FILENAME = "olim_wide_3.txt";
 static const char* HUSBAND_EDU_FILENAME = "husband_edu.txt";
-static const char* INITIAL_PARAM_FILE = "params.txt";
+static const char* USSR_ENG_EXP_FILENAME = "ussr_eng_exp.txt";
+static const char* INITIAL_PARAM_FILE = "params.txt"; 
 static const char* PARAM_INDEX_FILE = "params_index.txt";
 #ifdef SIMULATION
 static const char* FR_FILE_NAME = "fr_params.txt";
@@ -3695,6 +3751,11 @@ int main(int argc, char** argv)
         return -1;
     }
 
+    if (!load_ussr_eng_exp(USSR_ENG_EXP_FILENAME))
+    {
+        fprintf(stderr, "failed to load USSR engineer experience data from file %s\n", USSR_ENG_EXP_FILENAME);
+        return -1;
+    }
     if (!load_moments(MOMENTS_FILENAME))
     {
         fprintf(stderr, "failed to load moments data from file %s\n", MOMENTS_FILENAME);
