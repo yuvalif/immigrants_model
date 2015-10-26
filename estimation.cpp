@@ -76,7 +76,7 @@ const unsigned int OBSR         = 529;              // individual
 //const unsigned int OBS          = OBSR*TYPE_SIZE;   // individual multiplay by number of types
 const unsigned int DRAWS        = 30;               // draws for emax
 const unsigned int RG_SIZE      = 7;                // # of regions
-const unsigned int TC_SIZE      = 3;                // travel cost
+const unsigned int TC_SIZE      = 4;                // travel cost
 const unsigned int STATE_SIZE   = 3;                // # of states: white, blue, unemployed
 const unsigned int ALL_STATE_SIZE   = 4;            // # of states: white, blue full, blue part, unemployed
 #ifdef SIMULATION
@@ -686,7 +686,7 @@ static bool load_moments(const char* filename)
     }
 }
 
-const unsigned short int MAX_PARAM_LEN = 153;   //# of parameters
+const unsigned short int MAX_PARAM_LEN = 154;   //# of parameters
 #define set_param_array(param_name,size) float param_name[(size)]; for (j = 0; j < (size); ++i, ++j) param_name[j] = params[i]; 
 #define set_param(param_name) float param_name = params[i]; ++i;
 
@@ -886,7 +886,7 @@ static const unsigned int MARRIED_SIM = 6;
 #endif
 
 // estimation function used inside the optimization process to find the params the find minimum likelihood
-// input: array of MAX_PARAM_LEN (153) parameters
+// input: array of MAX_PARAM_LEN (154) parameters
 // output: likelihood of these params in respect to the individuals' params and the moments
 
 #define RENT_REF_PARAM 1.0
@@ -1044,15 +1044,12 @@ static double estimation(float* params)
     set_param(beta38)// type2[69]
     beta38 = beta38 / 10.0f;
     // Travelling Costs
-    float tc[TC_SIZE]; //[70..72]
-    for (j = 0; j < TC_SIZE; ++j, ++i)
+    float tc[TC_SIZE]; //[70..72,153]
+    for (j = 0; j < TC_SIZE-1; ++j, ++i)
     {
         tc[j] = expf(params[i]);
     }
-    // tc1 - tc12,tc13,tc45
-    // tc2 - tc15,tc14,tc16,tc17,tc25,tc26,tc27,tc35,tc36,tc37,yc46,tc47,tc56,tc57,tc67
-    // tc3 - tc23,tc24,tc34
-    // tc4 - 0
+    // tc3 (last one) parameter is added at the end
     // probability of Losing Job, by Type
     set_param_array(aw, STATE_SIZE) // Probability of Losing Job in white color - type 0,1,2[73..75]
     float ab[STATE_SIZE]; // Probability of Losing Job in blue color - type 0 - types 1 and 2 are the same as in white[76]
@@ -1127,22 +1124,18 @@ static double estimation(float* params)
     set_param(moving_cost_0) // moving cost from region 0 to any region [151]
     moving_cost_0 = -expf(moving_cost_0);
     set_param(lamda233) // return on experience in USSR as engineer [152]
+    tc[TC_SIZE-1] = expf(params[i]); ++i; // travel cost 3 [153]
 
     // P_W_ERROR[0] = 0, P(x<P_W_ERROR[1]) = 10%, P(x<P_W_ERROR[2]) = 30%, P(x<P_W_ERROR[3]) = 50%, P(x<P_W_ERROR[4]) = 70%, P(x<P_W_ERROR[5]) = 90%
     static const float P_W_ERROR[D_WAGE] = {0.0, -1.281551, -0.524401, 0.0, 0.524401, 1.281551};
     // P(x<P_W_ERROR_RNG[1]) = 20%, P(x<P_W_ERROR_RNG[2]) = 40%, P(x<P_W_ERROR_RNG[3]) = 60%, P(x<P_W_ERROR_RNG[4]) = 80%
     static const float P_W_ERROR_RNG[D_WAGE] = {0.0, -0.841621, -0.253347, 0.253347, 0.841621, 0.0};
-    // tc1 - tc12,tc13,tc45 // tc0 - tc01,tc02,tc34
-    // tc2 - tc15,tc14,tc16,tc17,tc25,tc26,tc27,tc34,tc35,tc36,tc37,yc46,tc47,tc56,tc57,tc67
-    // tc3 - tc23,tc24  // tc2 - tc12,tc13,tc23
-    // same index - 0
-    // note: actual indexes to array are the above minus one
     float travel_cost_arr[RG_SIZE][RG_SIZE];
 #ifdef SIMULATION
     
     travel_cost_arr[0][1] = tc[0]*((sim_type == TC_SIM) ? (1.0f - sim_percent) : 1.0f);
     travel_cost_arr[0][2] = tc[0]*((sim_type == TC_SIM) ? (1.0f - sim_percent) : 1.0f);
-    travel_cost_arr[3][4] = tc[2]*((sim_type == TC_SIM) ? (1.0f - sim_percent) : 1.0f);
+    travel_cost_arr[3][4] = tc[3]*((sim_type == TC_SIM) ? (1.0f - sim_percent) : 1.0f);
     travel_cost_arr[0][4] = tc[1]*((sim_type == TC_SIM) ? (1.0f - sim_percent) : 1.0f);
     travel_cost_arr[0][3] = tc[1];
     travel_cost_arr[0][5] = tc[1]*((sim_type == TC_SIM) ? (1.0f - sim_percent) : 1.0f);
@@ -1164,7 +1157,7 @@ static double estimation(float* params)
 
     travel_cost_arr[1][0] = tc[0];
     travel_cost_arr[2][0] = tc[0];
-    travel_cost_arr[4][3] = tc[2];
+    travel_cost_arr[4][3] = tc[3];
     travel_cost_arr[4][0] = tc[1];
     travel_cost_arr[3][0] = tc[1];
     travel_cost_arr[5][0] = tc[1];
@@ -1188,7 +1181,7 @@ static double estimation(float* params)
 
     travel_cost_arr[0][1] = tc[0];
     travel_cost_arr[0][2] = tc[0];
-    travel_cost_arr[3][4] = tc[2];
+    travel_cost_arr[3][4] = tc[3];
     travel_cost_arr[0][4] = tc[1];
     travel_cost_arr[0][3] = tc[1];
     travel_cost_arr[0][5] = tc[1];
@@ -3424,6 +3417,8 @@ static double estimation(float* params)
     printf("\n\nhouse-work region distribution (all types):\n\n");
     printf("----------------------------------------------------------------------------------------------------------------------------\n");
     printf(" rg |   count   |      1       |      2        |      3        |       4        |      5       |       6      |      7      |\n");
+    printf("----------------|              |               |               |                |              |              |             |\n");
+    printf(" house \\ work  |              |               |               |                |              |              |             |\n");
     printf("----------------------------------------------------------------------------------------------------------------------------\n");
     
     for (unsigned short h_rg = 0; h_rg < RG_SIZE; ++h_rg)
