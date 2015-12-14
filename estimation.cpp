@@ -1213,11 +1213,11 @@ static double estimation(float* params)
     travel_cost_arr[2][0] = tc[5];
 #endif
 
-//#if (TRACE_LOAD || SIMULATION)
+#if (TRACE_LOAD || SIMULATION)
 
-//#ifdef SIMULATION
-//    if (sim_type == TC_SIM)
-//#endif
+#ifdef SIMULATION
+    if (sim_type == TC_SIM)
+#endif
     {
         printf("--------------------------------------------------------------------------------------------------------------------------\n");
         printf("| region |       1       |       2       |       3       |       4       |       5       |       6       |       7       |\n");
@@ -1232,7 +1232,7 @@ static double estimation(float* params)
             printf("\n");
         }
     }
-//#endif
+#endif
 
     const unsigned short EDU_LEVELS = 3;
     const unsigned short edu_lower[EDU_LEVELS] = {0, 15, 17};
