@@ -1334,8 +1334,11 @@ static double estimation(float* params)
     const float             WAGE = WAGE_arr[I];
     const unsigned long     RENT_MORT = RENT_MORT_arr[I];
     const unsigned short    D_MORT = D_MORT_arr[I];
-#else
-    unsigned short          IND_FILTER =  (sim_type == MARRIED_SIM) ? IND_FILTER_arr[I] : 1;
+#endif
+#if defined(SIMULATION)
+    unsigned short          IND_FILTER = (sim_type == MARRIED_SIM) ? IND_FILTER_arr[I] : 1;
+#elif defined(ONLY_MARRIED)
+    unsigned short          IND_FILTER = (M_arr[I] != 0); 
 #endif
     const float             USSR_ENG_EXP = USSR_ENG_EXP_arr[I];
     float rent[RG_SIZE][TYPE_SIZE];
@@ -2330,7 +2333,7 @@ static double estimation(float* params)
                     dwage_b = 0;
                     dwage_w = D_W_W[tmp_work_rg];
 #ifdef TRACE
-#ifdef SIMULATION
+#if defined(SIMULATION) || defined(ONLY_MARRIED)
                     if (IND_FILTER==1)
 #endif
                     {
@@ -2350,7 +2353,7 @@ static double estimation(float* params)
                 max_index_arr[t][draw] = max_index;
 #endif
 #ifdef TRACE
-#ifdef SIMULATION
+#if defined(SIMULATION) || defined(ONLY_MARRIED)
                 if (IND_FILTER==1)
 #endif
                 {
@@ -2380,7 +2383,7 @@ static double estimation(float* params)
                     {
                         last_rent[draw] = rent[from_h_rg][type]/6.0f;
 #ifdef TRACE
-#ifdef SIMULATION
+#if defined(SIMULATION) || defined(ONLY_MARRIED)
                         if (IND_FILTER==1)
 #endif
                         {
@@ -2408,7 +2411,7 @@ static double estimation(float* params)
                         {
                             last_wage[draw] = ((w_wage_flag == false) ? wage_w[work_rg_arr[PERIODS-1][draw]] : wage_w_non_f[work_rg_arr[PERIODS-1][draw]])/6.0f;
 #ifdef TRACE
-#ifdef SIMULATION
+#if defined(SIMULATION) || defined(ONLY_MARRIED)
                             if (IND_FILTER==1)
 #endif
                             {
@@ -2439,7 +2442,7 @@ static double estimation(float* params)
                                 assert(0);
                             }
 #ifdef TRACE
-#ifdef SIMULATION
+#if defined(SIMULATION) || defined(ONLY_MARRIED)
                             if (IND_FILTER==1)
 #endif
                             {
@@ -3418,9 +3421,9 @@ static double estimation(float* params)
     
     printf("\n\nhouse-work region distribution (all types):\n\n");
     printf("----------------------------------------------------------------------------------------------------------------------------\n");
-    printf(" rg |   count   |      1       |      2        |      3        |       4        |      5       |       6      |      7      |\n");
+    printf(" rg  \\  count   |      1       |      2        |      3        |       4        |      5       |       6      |      7      |\n");
     printf("----------------|              |               |               |                |              |              |             |\n");
-    printf(" house \\ work  |              |               |               |                |              |              |             |\n");
+    printf(" house \\  work  |              |               |               |                |              |              |             |\n");
     printf("----------------------------------------------------------------------------------------------------------------------------\n");
     
     for (unsigned short h_rg = 0; h_rg < RG_SIZE; ++h_rg)

@@ -27,7 +27,8 @@ estimation_sim4_fullrent \
 estimation_sim4_fullwage \
 estimation_test_full \
 estimation_test_fullwage \
-estimation_ref 
+estimation_ref \
+estimation_test_m
 
 all: $(TARGETS)
 
@@ -94,6 +95,10 @@ estimation_test_fullwage: estimation.cpp
 estimation_ref: estimation.cpp
 	@echo Building $@...;
 	$(CC) $(CFLAGS) -DTRACE -DINFO -DREF_PARAM -o $@ $<;
+
+estimation_test_m: estimation.cpp
+	@echo Building $@...;
+	$(CC) $(CFLAGS) -DTRACE -DINFO -DONLY_MARRIED -o $@ $<;
 
 clean:
 	@echo Removing all executables...
