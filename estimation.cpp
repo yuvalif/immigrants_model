@@ -1100,8 +1100,10 @@ static double estimation(float* params)
         const unsigned short    TYPE2 = TYPE2_arr[I];
         const unsigned short    TYPE3 = TYPE3_arr[I];
         const unsigned short    WIFE_EDU = WIFE_EDU_arr[I];
-#ifdef SIMULATION
-        const unsigned short    IND_FILTER =  (sim_type == MARRIED_SIM) ? IND_FILTER_arr[I] : 1;
+#if defined(SIMULATION)
+        unsigned short          IND_FILTER = (sim_type == MARRIED_SIM) ? IND_FILTER_arr[I] : 1;
+#elif defined(ONLY_MARRIED)
+        unsigned short          IND_FILTER = (M_arr[I] != 0);
 #endif
         const float rent_for_all_regions = gama1*M+gama2*KIDS+gama3*TYPE2+gama4*TYPE3; //global rent without gama0 by region
 
@@ -2103,7 +2105,7 @@ static double estimation(float* params)
                     dwage_b = 0;
                     dwage_w = D_W_W[tmp_work_rg];
 #ifdef TRACE
-#ifdef SIMULATION
+#if defined(SIMULATION) || defined(ONLY_MARRIED)
                     if (IND_FILTER==1)
 #endif
                     {
@@ -2123,7 +2125,7 @@ static double estimation(float* params)
                 max_index_arr[t][draw] = max_index;
 #endif
 #ifdef TRACE
-#ifdef SIMULATION
+#if defined(SIMULATION) || defined(ONLY_MARRIED)
                 if (IND_FILTER==1)
 #endif
                 {
@@ -2147,7 +2149,7 @@ static double estimation(float* params)
                     {
                         last_rent[draw] = rent[from_h_rg]/6.0f;
 #ifdef TRACE
-#ifdef SIMULATION
+#if defined(SIMULATION) || defined(ONLY_MARRIED)
                         if (IND_FILTER==1)
 #endif
                         {
@@ -2175,7 +2177,7 @@ static double estimation(float* params)
                         {
                             last_wage[draw] = ((w_wage_flag == false) ? wage_w[work_rg_arr[PERIODS-1][draw]] : wage_w_non_f[work_rg_arr[PERIODS-1][draw]])/6.0f;
 #ifdef TRACE
-#ifdef SIMULATION
+#if defined(SIMULATION) || defined(ONLY_MARRIED)
                             if (IND_FILTER==1)
 #endif
                             {
@@ -2194,7 +2196,7 @@ static double estimation(float* params)
                         {
                             last_wage[draw] = ((b_wage_flag == false) ? wage_b[house_rg_arr[PERIODS-1][draw]] : wage_b_non_f[house_rg_arr[PERIODS-1][draw]])/6.0f;
 #ifdef TRACE
-#ifdef SIMULATION
+#if defined(SIMULATION) || defined(ONLY_MARRIED)
                             if (IND_FILTER==1)
 #endif
                             {
