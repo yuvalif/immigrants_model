@@ -926,6 +926,8 @@ const unsigned short MAXIMUM_K_INDEX=12;
 #define index_to_k(I) (((I) >= 6) ? (float)(I) - 3.0 : (float)(I)/2.0)
 #define k_to_index(K) (((K) >= 9.0) ? MAXIMUM_K_INDEX : (((K) >= 3.0) ? (int)(K) + 3 : (int)((K)*2.0)))
 
+int g_only_married = 1;
+
 #ifdef CALC_STDEV
 static double estimation(float* params, FILE *fp)
 #elif SIMULATION
@@ -1123,16 +1125,17 @@ static double estimation(float* params)
     set_param(moving_cost_0) // moving cost from region 0 to any region [151]
     moving_cost_0 = -expf(moving_cost_0);
     set_param(lamda233) // return on experience in USSR as engineer [152]
-    tc[3] = expf(params[i]); ++i; // travel cost 3 [153]
-    tc[4] = expf(params[i]); ++i; // travel cost 4 [154]
-    tc[5] = expf(params[i]); ++i; // travel cost 5 [155]
+    tc[3] = expf(params[i]); ++i; // travel cost from 3 to 4 and from 4 to 3 [153]
+    tc[4] = expf(params[i]); ++i; // travel cost from 0 to 2 [154]
+    tc[5] = expf(params[i]); ++i; // travel cost from 2 to 0 [155]
     // P_W_ERROR[0] = 0, P(x<P_W_ERROR[1]) = 10%, P(x<P_W_ERROR[2]) = 30%, P(x<P_W_ERROR[3]) = 50%, P(x<P_W_ERROR[4]) = 70%, P(x<P_W_ERROR[5]) = 90%
     static const float P_W_ERROR[D_WAGE] = {0.0, -1.281551, -0.524401, 0.0, 0.524401, 1.281551};
     // P(x<P_W_ERROR_RNG[1]) = 20%, P(x<P_W_ERROR_RNG[2]) = 40%, P(x<P_W_ERROR_RNG[3]) = 60%, P(x<P_W_ERROR_RNG[4]) = 80%
     static const float P_W_ERROR_RNG[D_WAGE] = {0.0, -0.841621, -0.253347, 0.253347, 0.841621, 0.0};
     float travel_cost_arr[RG_SIZE][RG_SIZE];
 #ifdef SIMULATION
-    
+   
+    // to 0, 3, 6 are not getting subsidy
     travel_cost_arr[0][1] = tc[0]*((sim_type == TC_SIM) ? (1.0f - sim_percent) : 1.0f);
     travel_cost_arr[0][2] = tc[4]*((sim_type == TC_SIM) ? (1.0f - sim_percent) : 1.0f);
     travel_cost_arr[3][4] = tc[3]*((sim_type == TC_SIM) ? (1.0f - sim_percent) : 1.0f);
@@ -1338,7 +1341,7 @@ static double estimation(float* params)
 #if defined(SIMULATION)
     unsigned short          IND_FILTER = (sim_type == MARRIED_SIM) ? IND_FILTER_arr[I] : 1;
 #elif defined(ONLY_MARRIED)
-    unsigned short          IND_FILTER = (M_arr[I] != 0); 
+    unsigned short          IND_FILTER = (M_arr[I] == g_only_married);
 #endif
     const float             USSR_ENG_EXP = USSR_ENG_EXP_arr[I];
     float rent[RG_SIZE][TYPE_SIZE];
@@ -2824,7 +2827,7 @@ static double estimation(float* params)
         double log_prob;
         if (prob < 1e-300 || prob == -INFINITY  || prob == INFINITY || prob == -NAN || prob == NAN)
         {
-#ifdef INFO
+#if defined(INFO) && !defined(SIMULATION)
             printf("failed to calculated value for I=%hu\n******************************************************\n", I);
 #endif
             log_prob = -110.0;
@@ -3707,6 +3710,10 @@ int main(int argc, char** argv)
         fprintf(stderr, "invalid simulation percent value. valid values are: 0 - 100 (inclusive)\n");
         return -1;
     }
+    else if (sim_type == TC_SIM && sim_percent == 100.0f)
+    {
+        fprintf(stderr, "invalid simulation percent value. travel cost subsidy cannot be 100%%\n");
+    }
     sim_percent /= 100.0f;
 #elif REF_PARAM
     if (argc < 5)
@@ -3717,6 +3724,19 @@ int main(int argc, char** argv)
     
     float rent_param = (float)atof(argv[3]);
     float wage_param = (float)atof(argv[4]);
+#elif ONLY_MARRIED
+    if (argc < 4)
+    {
+        fprintf(stderr, "usage: %s <input filename> <output filename> <married -1 unmarried - 0>\n", argv[0]);
+        return -1;
+    }
+
+    g_only_married = atoi(argv[3]);
+    if (g_only_married != 1 && g_only_married != 0)
+    {
+        fprintf(stderr, "valid values are:\n1 - married\n0 - unmarried\n");
+        return -1;
+    }
 #else // not CALC_STDEV nor SIMULATION
     if (argc < 3)
     {
