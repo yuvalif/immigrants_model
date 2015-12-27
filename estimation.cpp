@@ -1173,8 +1173,6 @@ static double estimation(float* params)
                 }
             }
         }
-        // TODO
-        printf("%d\n", WIFE_EDU_LEVEL);
         const unsigned int wife_edu_level_15 = WIFE_EDU_LEVEL == 1 ? 1 : 0;
         const unsigned int wife_edu_level_17 = WIFE_EDU_LEVEL == 2 ? 1 : 0;
         const float type1_edu = type1 + type1_edu_15*wife_edu_level_15 + type1_edu_17*wife_edu_level_17;
@@ -3202,9 +3200,9 @@ static double estimation(float* params)
     for (unsigned int edu_level = 0; edu_level < EDU_LEVELS; ++edu_level)
     {
         printf("\n\noccupation distribution: for education level %hu-%hu:\n\n", edu_lower[edu_level], edu_upper[edu_level]);
-        printf("---------------------------------------------------------------------------------\n");
-        printf(" T |   count   |     UE      |      WHITE     |   BLUE (FULL)  |   BLUE (PART)  |\n");
-        printf("---------------------------------------------------------------------------------\n");
+        printf("---------------------------------------------------------\n");
+        printf(" T |   count   |     UE      |      WHITE     |   BLUE  |\n");
+        printf("---------------------------------------------------------\n");
         for (unsigned short t = 0; t < max_T; ++t)
         {
             if (t != 1 && t !=3 && t !=5 && t != 9)
