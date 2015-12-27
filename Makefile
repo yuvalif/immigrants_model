@@ -2,7 +2,7 @@
 CC=$(shell which icpc)
 ifneq ($(CC),)
 CC=icpc
-CWARNING_FLAGS=-Wall -wd981 -wd193 -wd2259 -wd1572
+CWARNING_FLAGS=-Wall #-wd981 -wd193 -wd2259 -wd1572
 CFLAGS=$(CWARNING_FLAGS) -opt-prefetch -fno-alias -fno-exceptions -fp-model fast=2 -fast-transcendentals -O3 -static
 else
 CC=g++
@@ -12,24 +12,10 @@ endif
 
 TARGETS=estimation \
 estimation_debug \
-estimation_sim \
-estimation_sim_debug \
 estimation_test \
-estimation_sim_full \
-estimation_sim_fullrent \
-estimation_sim_fullwage \
 estimation_stdev  \
-estimation_sim4 \
-estimation_sim4_full \
-estimation_sim4_fullrent \
-estimation_sim4_fullwage \
 estimation_test_full \
-estimation_test_fullwage \
-estimation_wage_selection \
-estimation_fullwage_selection \
-estimation_ref \
-estimation_wife \
-estimation_test_m
+estimation_test_fullwage 
 
 all: $(TARGETS)
 
