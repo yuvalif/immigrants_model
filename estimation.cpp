@@ -1031,6 +1031,8 @@ static double estimation(float* params)
     unsigned long house_distribution_count[TYPE_SIZE][T]={{0}};
     unsigned long house_notype_distribution[RG_SIZE][T]={{0}};
     unsigned long house_notype_distribution_count[T]={0};
+    unsigned long house_notype_edu_distribution[EDU_LEVELS][RG_SIZE][T]={{{0}}};
+    unsigned long house_notype_edu_distribution_count[EDU_LEVELS][T]={{0}};
     // white work region distribution
     unsigned long work_rg_distribution[TYPE_SIZE][RG_SIZE][T]={{{0}}};
     unsigned long work_rg_distribution_count[TYPE_SIZE][T]={{0}};
@@ -1041,6 +1043,8 @@ static double estimation(float* params)
     unsigned long occ_distribution_count[TYPE_SIZE][T]={{0}};
     unsigned long occ_notype_distribution[STATE_SIZE][T]={{0}};
     unsigned long occ_notype_distribution_count[T]={0};
+    unsigned long occ_notype_edu_distribution[EDU_LEVELS][STATE_SIZE][T]={{{0}}};
+    unsigned long occ_notype_edu_distribution_count[EDU_LEVELS][T]={{0}};
     // house-work region distribution
     unsigned long house_work_rg_distribution[TYPE_SIZE][RG_SIZE][RG_SIZE]={{{0}}};
     unsigned long house_work_rg_distribution_count[TYPE_SIZE][RG_SIZE]={{0}};
@@ -1169,6 +1173,8 @@ static double estimation(float* params)
                 }
             }
         }
+        // TODO
+        printf("%d\n", WIFE_EDU_LEVEL);
         const unsigned int wife_edu_level_15 = WIFE_EDU_LEVEL == 1 ? 1 : 0;
         const unsigned int wife_edu_level_17 = WIFE_EDU_LEVEL == 2 ? 1 : 0;
         const float type1_edu = type1 + type1_edu_15*wife_edu_level_15 + type1_edu_17*wife_edu_level_17;
@@ -2213,6 +2219,13 @@ static double estimation(float* params)
                     ++occ_distribution_count[I_type][t];
                     ++occ_notype_distribution[from_state][t];
                     ++occ_notype_distribution_count[t];
+                    if (WIFE_EDU_LEVEL != -1)
+                    {
+                        ++house_notype_edu_distribution[WIFE_EDU_LEVEL][from_h_rg][t];
+                        ++house_notype_edu_distribution_count[WIFE_EDU_LEVEL][t];
+                        ++occ_notype_edu_distribution[WIFE_EDU_LEVEL][from_state][t];
+                        ++occ_notype_edu_distribution_count[WIFE_EDU_LEVEL][t];
+                    }
                 }
 #endif
                 // calculate last rent and wage
@@ -3118,6 +3131,139 @@ static double estimation(float* params)
     printf("%hu\t-----\t0.000000\t1.310000\t3.270000\t32.03000\t63.40000\t0.000000\t0.000000\n", 5);
     printf("%hu\t-----\t1.880000\t0.000000\t9.380000\t0.000000\t0.000000\t88.75000\t0.000000\n", 6);
     printf("%hu\t-----\t0.000000\t0.000000\t0.000000\t0.000000\t0.000000\t0.000000\t100.0000\n", 7);
+
+    ////////////////////// House Region Distribution per Education Level//////////////////////
+    for (unsigned int edu_level = 0; edu_level < EDU_LEVELS; ++edu_level)
+    {
+        printf("\n\nhousing region distribution (all types) for education level %hu-%hu:\n\n", edu_lower[edu_level], edu_upper[edu_level]);
+        printf("-----------------------------------------------------------------------------------------------------------------------------\n");
+        printf(" T |   count    |      1       |      2        |      3        |       4        |      5       |       6      |      7      |\n");
+        printf("-----------------------------------------------------------------------------------------------------------------------------\n");
+
+        for (unsigned short t = 0; t < max_T; ++t)
+        {
+            if (t != 1 && t !=3 && t !=5 && t != 9)
+            {
+                continue;
+            }
+            printf("%hu\t%lu\t", t, house_notype_edu_distribution_count[edu_level][t]);
+            for (unsigned rg = 0; rg < RG_SIZE; ++rg)
+            {
+                if (house_notype_edu_distribution_count[edu_level][t] > 0)
+                {
+                    printf("%f\t", (float)house_notype_edu_distribution[edu_level][rg][t]/(float)house_notype_edu_distribution_count[edu_level][t]);
+                }
+                else
+                {
+                    printf("--------\t");
+                }
+
+            }
+            printf("\n");
+        }
+        printf("\n------------------------------------------------------------------------------------------------------------------------------------\n");
+        memset(house_distribution_count, '\0', sizeof(house_distribution_count));
+        memset(house_distribution, '\0', sizeof(house_distribution));
+        for (unsigned short I = 0; I < OBSR; ++I)
+        {
+            unsigned short last_t = PERIODS_arr[I];
+            for (unsigned short t = 0; t < last_t ; ++t)
+            {
+                if (live(I,t) > -1 &&  WIFE_EDU_arr[I] != 99 && WIFE_EDU_arr[I] >= edu_lower[edu_level] && WIFE_EDU_arr[I] <= edu_upper[edu_level])
+                {
+                    ++house_distribution_count[0][t];
+                    ++house_distribution[0][live(I,t)][t];
+                }
+            }
+        }
+        for (unsigned short t = 0; t < MOMENTS_PERIODS ; ++t)
+        {
+            if (t != 1 && t !=3 && t !=5 && t != 9)
+            {
+                continue;
+            }
+            printf("%hu\t%lu\t", t, house_distribution_count[0][t]);
+            for (unsigned rg = 0; rg < RG_SIZE; ++rg)
+            {
+                if (house_distribution_count[0][t] > 0)
+                {
+                    printf("%f\t", (float)house_distribution[0][rg][t]/(float)house_distribution_count[0][t]);
+                }
+                else
+                {
+                    printf("--------\t");
+                }
+            }
+            printf("\n");
+        }
+    }
+    
+     ////////////////////// Occupation Distribution per Education Level//////////////////////
+    for (unsigned int edu_level = 0; edu_level < EDU_LEVELS; ++edu_level)
+    {
+        printf("\n\noccupation distribution: for education level %hu-%hu:\n\n", edu_lower[edu_level], edu_upper[edu_level]);
+        printf("---------------------------------------------------------------------------------\n");
+        printf(" T |   count   |     UE      |      WHITE     |   BLUE (FULL)  |   BLUE (PART)  |\n");
+        printf("---------------------------------------------------------------------------------\n");
+        for (unsigned short t = 0; t < max_T; ++t)
+        {
+            if (t != 1 && t !=3 && t !=5 && t != 9)
+            {
+                continue;
+            }
+            printf("%hu\t%lu\t", t, occ_notype_edu_distribution_count[edu_level][t]);
+            for (unsigned st = 0; st < STATE_SIZE; ++st)
+            {
+                if (occ_notype_edu_distribution_count[edu_level][t] > 0)
+                {
+                    printf("%f\t", (float)occ_notype_edu_distribution[edu_level][st][t]/(float)occ_notype_edu_distribution_count[edu_level][t]);
+                }
+                else
+                {
+                    printf("--------\t");
+                }
+
+            }
+            printf("\n");
+        }
+
+        printf("\n------------------------------------------------------------------------------------------------------------------------------------\n");
+        memset(occ_distribution_count, '\0', sizeof(occ_distribution_count));
+        memset(occ_distribution, '\0', sizeof(occ_distribution));
+        for (unsigned short I = 0; I < OBSR; ++I)
+        {
+            unsigned short last_t = PERIODS_arr[I];
+            for (unsigned short t = 0; t < last_t ; ++t)
+            {
+                if (occupation(I,t) > -1 && WIFE_EDU_arr[I] != 99 && WIFE_EDU_arr[I] >= edu_lower[edu_level] && WIFE_EDU_arr[I] <= edu_upper[edu_level])
+                {
+                     const short work_rg = sample(I,t)/7;
+                    ++occ_distribution_count[0][t];
+                    ++occ_distribution[0][(work_rg == 0) ? UE : ((work_rg == 1) ? BLUE : WHITE)][t];
+                }
+            }
+        }
+        for (unsigned short t = 0; t < MOMENTS_PERIODS ; ++t)
+        {
+            if (t != 1 && t !=3 && t !=5 && t != 9)
+            {
+                continue;
+            }
+            printf("%hu\t%lu\t", t, occ_distribution_count[0][t]);
+            for (unsigned st = 0; st < STATE_SIZE; ++st)
+            {
+                if (occ_distribution_count[0][t] > 0)
+                {
+                    printf("%f\t", (float)occ_distribution[0][st][t]/(float)occ_distribution_count[0][t]);
+                }
+                else
+                {
+                    printf("--------\t");
+                }
+            }
+            printf("\n");
+        }
+    }
 
 #endif
 
