@@ -15,7 +15,8 @@ estimation_debug \
 estimation_test \
 estimation_stdev  \
 estimation_test_full \
-estimation_test_fullwage 
+estimation_test_fullwage \
+estimation_test_m
 
 all: $(TARGETS)
 

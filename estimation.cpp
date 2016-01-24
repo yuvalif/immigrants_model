@@ -1100,8 +1100,10 @@ static double estimation(float* params)
 
     // string likelihood per individual    
     double like_arr[OBSR];
+    float PROB_T0[OBSR];
     float PROB_T1[OBSR];
-    float PROB_T2[OBSR];
+    float
+        PROB_T2[OBSR];
 #ifdef SIMULATION
     double total_max_utility[T];
     memset(total_max_utility, '\0', sizeof(total_max_utility));
@@ -1144,6 +1146,11 @@ static double estimation(float* params)
         float t_const_tmp_b[TYPE_SIZE];
         float const_taste[RG_SIZE];
         float rent_for_all_regions[TYPE_SIZE];
+#if defined(SIMULATION)
+        unsigned short          IND_FILTER = (sim_type == MARRIED_SIM) ? IND_FILTER_arr[I] : 1;
+#elif defined(ONLY_MARRIED)
+        unsigned short          IND_FILTER = (M_arr[I] != 0);
+#endif
 
     for (unsigned short type = 0; type < TYPE_SIZE; ++type)
     {
@@ -1180,12 +1187,8 @@ static double estimation(float* params)
 
         PROB_T1[I] = expf(type1_edu)/(1.0+(expf(type1_edu)+expf(type2_edu)));
         PROB_T2[I] = expf(type2_edu)/(1.0+(expf(type1_edu)+expf(type2_edu)));
+        PROB_T0[I] = 1.0-PROB_T1[I]-PROB_T2[I];
 
-#if defined(SIMULATION)
-        unsigned short          IND_FILTER = (sim_type == MARRIED_SIM) ? IND_FILTER_arr[I] : 1;
-#elif defined(ONLY_MARRIED)
-        unsigned short          IND_FILTER = (M_arr[I] != 0);
-#endif
         rent_for_all_regions[type] = gama1*M+gama2*KIDS+gama3*TYPE1+gama4*TYPE2; //global rent without gama0 by region
 
 #ifndef WAGE_SELECTION
@@ -1628,20 +1631,8 @@ static double estimation(float* params)
         float last_rent[DRAWS_F];
         memset(p_bar_arr, '\0', sizeof(p_bar_arr));
         unsigned short type = draw_type(PROB_T1[I], PROB_T2[I]);
-        unsigned short I_id;
-#ifdef TRACE
-        unsigned short I_type;
-#endif
-        {
-            div_t I_info = div(I,OBSR);
-            I_id = (unsigned short)I_info.rem;
-#ifdef TRACE
-            I_type = (unsigned short)I_info.quot;
-#endif
-        }
-
 #ifdef SIMULATION
-        const unsigned short draws_f = (unsigned short)((I_type == 0) ? TYPE_0_OF_1000 : ((I_type == 1) ? TYPE_1_OF_1000 : TYPE_2_OF_1000));
+        const unsigned short draws_f = (unsigned short)((type == 0) ? TYPE_0_OF_1000 : ((type == 1) ? TYPE_1_OF_1000 : TYPE_2_OF_1000));
 #else 
         const unsigned short draws_f = DRAWS_F;
 #endif // SIMULATION
@@ -1649,7 +1640,7 @@ static double estimation(float* params)
         for (unsigned short draw = 0; draw < draws_f; ++draw)
         {
 #ifdef FULL_TRACE
-            printf("%hu %hu %hu %hu ", I_id, (REP1 ? 1 : (REP2 ? 2 : (REP3 ? 3 : 4))),  I_type, draw); 
+            printf("%hu %hu %hu %hu ", I, (REP1 ? 1 : (REP2 ? 2 : (REP3 ? 3 : 4))),  type, draw); 
 #endif
             unsigned short dwage_b = 0;
             unsigned short dwage_w = 0;
@@ -2188,13 +2179,13 @@ static double estimation(float* params)
                     if (IND_FILTER==1)
 #endif
                     {
-                        ++work_rg_distribution[I_type][from_w_rg][t];
-                        ++work_rg_distribution_count[I_type][t];
+                        ++work_rg_distribution[type][from_w_rg][t];
+                        ++work_rg_distribution_count[type][t];
                         ++work_rg_notype_distribution[from_w_rg][t];
                         ++work_rg_notype_distribution_count[t];
                     
-                        ++house_work_rg_distribution_count[I_type][from_h_rg];
-                        ++house_work_rg_distribution[I_type][from_h_rg][from_w_rg];
+                        ++house_work_rg_distribution_count[type][from_h_rg];
+                        ++house_work_rg_distribution[type][from_h_rg][from_w_rg];
                         ++house_work_rg_notype_distribution_count[from_h_rg];
                         ++house_work_rg_notype_distribution[from_h_rg][from_w_rg];
                     }
@@ -2208,13 +2199,13 @@ static double estimation(float* params)
                 if (IND_FILTER==1)
 #endif
                 {
-                    ++house_distribution[I_type][from_h_rg][t];
-                    ++house_distribution_count[I_type][t];
+                    ++house_distribution[type][from_h_rg][t];
+                    ++house_distribution_count[type][t];
                     ++house_notype_distribution[from_h_rg][t];
                     ++house_notype_distribution_count[t];
                 
-                    ++occ_distribution[I_type][from_state][t];
-                    ++occ_distribution_count[I_type][t];
+                    ++occ_distribution[type][from_state][t];
+                    ++occ_distribution_count[type][t];
                     ++occ_notype_distribution[from_state][t];
                     ++occ_notype_distribution_count[t];
                     if (WIFE_EDU_LEVEL != -1)
@@ -2239,12 +2230,12 @@ static double estimation(float* params)
                         if (IND_FILTER==1)
 #endif
                         {
-                            rent_rg_sum[I_type][from_h_rg] += last_rent[draw];
-                            ++rent_rg_count[I_type][from_h_rg];
+                            rent_rg_sum[type][from_h_rg] += last_rent[draw];
+                            ++rent_rg_count[type][from_h_rg];
                             rent_rg_notype_sum[from_h_rg] += last_rent[draw];
                             ++rent_rg_notype_count[from_h_rg];
-                            rent_sum[I_type] += last_rent[draw];
-                            ++rent_count[I_type];
+                            rent_sum[type] += last_rent[draw];
+                            ++rent_count[type];
                             rent_notype_sum += last_rent[draw];
                             ++rent_notype_count;
                         }
@@ -2256,7 +2247,7 @@ static double estimation(float* params)
                         last_rent[draw] = 0.0;
                     }
 #endif  
-                    if (I_id!=84 && I_id!=214 && I_id!=399 && I_id!=620 && I_id!=640)
+                    if (I!=84 && I!=214 && I!=399 && I!=620 && I!=640)
                     {
                         // all individuals that are not special cases have last_wage calculated here
                         if (from_state == WHITE)
@@ -2267,10 +2258,10 @@ static double estimation(float* params)
                             if (IND_FILTER==1)
 #endif
                             {
-                                wage_white_rg_sum[I_type][from_w_rg] += last_wage[draw];
-                                ++wage_white_rg_count[I_type][from_w_rg];
-                                wage_white_sum[I_type] += last_wage[draw];
-                                ++wage_white_count[I_type];
+                                wage_white_rg_sum[type][from_w_rg] += last_wage[draw];
+                                ++wage_white_rg_count[type][from_w_rg];
+                                wage_white_sum[type] += last_wage[draw];
+                                ++wage_white_count[type];
                                 wage_white_notype_rg_sum[from_w_rg] += last_wage[draw];
                                 ++wage_white_notype_rg_count[from_w_rg];
                                 wage_white_notype_sum += last_wage[draw];
@@ -2286,12 +2277,12 @@ static double estimation(float* params)
                             if (IND_FILTER==1)
 #endif
                             {
-                                wage_blue_rg_sum[I_type][from_h_rg] += last_wage[draw];
-                                ++wage_blue_rg_count[I_type][from_h_rg];
+                                wage_blue_rg_sum[type][from_h_rg] += last_wage[draw];
+                                ++wage_blue_rg_count[type][from_h_rg];
                                 wage_blue_rg_notype_sum[from_h_rg] += last_wage[draw];
                                 ++wage_blue_rg_notype_count[from_h_rg];
-                                wage_blue_sum[I_type] += last_wage[draw];
-                                ++wage_blue_count[I_type];
+                                wage_blue_sum[type] += last_wage[draw];
+                                ++wage_blue_count[type];
                                 wage_blue_notype_sum += last_wage[draw];
                                 ++wage_blue_notype_count;
                             }
@@ -2330,7 +2321,7 @@ static double estimation(float* params)
 #endif // SANITY
 
                 }
-                else if ((t == 7 && I_id == 84) || (t == 6 && I_id == 214) || (t == 1 && I_id == 399) || (t == 3 && (I_id == 640 || I_id == 620)))
+                else if ((t == 7 && I == 84) || (t == 6 && I == 214) || (t == 1 && I == 399) || (t == 3 && (I == 640 || I == 620)))
                 {
                     // not the last period, handle special cases
                     if (from_state == WHITE)
@@ -2690,9 +2681,21 @@ static double estimation(float* params)
 #endif
 
 #ifdef TRACE
-    //printf("\ntype 0 probability = %f\t", PROB_T0);
-    //printf("type 1 probability = %f\t", PROB_T1);
-    //printf("type 2 probability = %f\t", PROB_T2);
+
+    {
+        float sum_of_prob_t0 = 0.0;
+        float sum_of_prob_t1 = 0.0;
+        float sum_of_prob_t2 = 0.0;
+        for (unsigned short I = 0; I < OBSR; ++I)
+        {
+            sum_of_prob_t0 += PROB_T0[I];
+            sum_of_prob_t1 += PROB_T1[I];
+            sum_of_prob_t2 += PROB_T2[I];
+        }
+        printf("\ntype 0 probability = %f\t", sum_of_prob_t0/(float)OBSR);
+        printf("type 1 probability = %f\t", sum_of_prob_t1/(float)OBSR);
+        printf("type 2 probability = %f\t", sum_of_prob_t2/(float)OBSR);
+    }
 
     ////////////////////// Occupation Distribution /////////////////////
     printf("\n\noccupation distribution:\n\n");
