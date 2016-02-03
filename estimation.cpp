@@ -1016,8 +1016,7 @@ static double estimation(float* params)
     beta20[5] = beta20[1];
     beta20[6] = beta20[1];
     float beta21_1 = params[i]/100.0f; ++i;// schooling [48]
-    float beta21_3 = params[i]/100.0f; ++i;// schooling [49]
-    float beta21_2 = beta21_3;
+    float beta21_2 = params[i]/100.0f; ++i;// schooling [49]
     float beta22 = params[i]/1000.0f; ++i;// experience in USSR [50]
     float beta23 = params[i]/1000.0f; ++i;// exp^2  in USSR [51]
     float beta24 = params[i]/100.0f; ++i;// experience in Israel [52]
@@ -1031,9 +1030,8 @@ static double estimation(float* params)
     {
          beta30[j] = params[i]/10.0f;
     }
-    float beta31_1 = params[i] / 100.0f; ++i; // schooling[64]
-    float beta31_3 = params[i] / 100.0f; ++i; //schooling[65]
-    float beta31_2 = beta31_3;
+    float beta31_1 = params[i]/100.0f; ++i; // schooling[64]
+    float beta31_2 = params[i]/100.0f; ++i; //schooling[65]
     float beta32 = beta22; // experience in USSR - as in white collar
     float beta33 = beta23; // exp^2  in USSR - as in white collar
     set_param(beta34)// experience in Israel[66]
@@ -1060,8 +1058,7 @@ static double estimation(float* params)
     // Job offer parameters - white collar
     set_param_array(lamda20, RG_SIZE) // constant for every region[77...83]
     float lamda21_1 = params[i]/10.0f; ++i; // schooling[84]
-    float lamda21_3 = params[i]/10.0f; ++i; //schooling[85]
-    float lamda21_2 = lamda21_3;
+    float lamda21_2 = params[i]/10.0f; ++i; //schooling[85]
     set_param(lamda22) // unemployment[86]
     set_param(lamda23) // age at arrival[87]
     lamda23 = lamda23/100.0f;
@@ -1366,9 +1363,10 @@ static double estimation(float* params)
         const unsigned short    KIDS = KIDS_arr[I];
         const unsigned short    EXP_U = EXP_U_arr[I];
         const unsigned long     EXP_U_SQ = EXP_U*EXP_U;
-        const unsigned char     SCHOOL1 = (SCHOOL_arr[I] < 16) ? 1 : 0;
-        const unsigned char     SCHOOL2 = (SCHOOL_arr[I] == 17) ? 1 : 0;
-        const unsigned char     SCHOOL3 = (SCHOOL_arr[i] > 17 || SCHOOL_arr[i] == 16) ? 1 : 0;
+        // TODO remove
+        //const unsigned char     SCHOOL1 = (SCHOOL_arr[I] < 15) ? 1 : 0;
+        const unsigned char     SCHOOL2 = (SCHOOL_arr[I] == 15) || (SCHOOL_arr[I] == 16) ? 1 : 0;
+        const unsigned char     SCHOOL3 = (SCHOOL_arr[i] > 17) ? 1 : 0;
         //const unsigned short    TYPE1 = TYPE1_arr[I];
         //const unsigned short    TYPE2 = TYPE2_arr[I];
         const unsigned short    TYPE1 = (type == 1);
@@ -1432,13 +1430,13 @@ static double estimation(float* params)
         prob_nonfired_w[type] = 1.0f/(1.0f + expf(TYPE1*aw[1]+TYPE2*aw[2]+TYPE0*aw[0]));
         //probability of not losing your job in blue collar
         prob_nonfired_b[type] = 1.0f/(1.0f + expf(TYPE1*ab[1]+TYPE2*ab[2]+TYPE0*ab[0]));
-        const_lamda_work_2w[type] = (lamda21_1*SCHOOL1 + lamda21_2*SCHOOL2 + lamda21_3*SCHOOL3) + 
+        const_lamda_work_2w[type] = (lamda21_1*SCHOOL2 + lamda21_2*SCHOOL3) + 
                                             lamda23*AGE+lamda27*TYPE1+lamda28*TYPE2+lamda29*KIDS+lamda233*USSR_ENG_EXP; //part of the probability of getting job offer in white - page 13
         const_lamda_work_2b_full[type] = lamda33*AGE+lamda37*TYPE1+lamda38*TYPE2+lamda39*KIDS; //part of the probability of getting job offer in blue - page 13
         const_lamda_work_2b_part[type] = lamda43*AGE+lamda37*TYPE1+lamda38*TYPE2+lamda49*KIDS; //part of the probability of getting job offer in blue - page 13
-        t_const_tmp_w[type] = (beta21_1*SCHOOL1 + beta21_2*SCHOOL2 + beta21_3*SCHOOL3) + 
+        t_const_tmp_w[type] = (beta21_1*SCHOOL2 + beta21_2*SCHOOL3) + 
                                             beta22*EXP_U+beta23*EXP_U_SQ+beta27*TYPE1+beta28*TYPE2;  //part of the wage equation  white collar- equation 7 page 14
-        t_const_tmp_b[type] = (beta31_1*SCHOOL1 + beta31_2*SCHOOL2 + beta31_3*SCHOOL3) + 
+        t_const_tmp_b[type] = (beta31_1*SCHOOL2 + beta31_2*SCHOOL3) + 
                                             beta32*EXP_U+beta33*EXP_U_SQ+beta37*TYPE1+beta38*TYPE2;  //part of the wage equation  blue collar- equation 7 page 14
 
         const float ret = 65.0f - (float)AGE + 10.0f;
@@ -1580,7 +1578,7 @@ static double estimation(float* params)
                             
                             wage_nonfired_2w[rg][dwage] = draw_wage(wage_w[dwage], prob_nonfired_w[type]);            //equal wage if ind wasn't fired  and -inf if was fired  
                             const float wage_nonfired_2b_full = draw_wage(wage_b[dwage], prob_nonfired_b[type]);      //equal wage if ind wasn't fired  and -inf if was fired
-                            const float wage_nonfired_2b_part = draw_wage(wage_b[dwage]/2.0, prob_nonfired_b[type]) + alfa3/2.0; //equal wage if ind wasn't fired  and -inf if was fired
+                            const float wage_nonfired_2b_part = draw_wage(wage_b[dwage]/2.0, prob_nonfired_b[type]) + (expf(sgma[2]*tmp3) + alfa3)/2.0; //equal wage if ind wasn't fired  and -inf if was fired
                             if (t == T)
                             {
                                 choose_ue_emax = 0.0f;
@@ -1607,10 +1605,10 @@ static double estimation(float* params)
 
                         wage_ue_2w[rg] = draw_wage(wage_w[0], prob_ue_2w[rg]);          // equal wage if ind come fron ue and got an offer and -inf if didn't
                         float wage_ue_2b = draw_blue_wage(wage_b[0], prob_ue_2b_full[rg], prob_ue_2b_part[rg], ue_2b_full[rg], part_wage_factor); // equal wage if ind come fron ue and got an offer and -inf if not
-                        wage_ue_2b += (ue_2b_full[rg] == false ? alfa3/2.0 : 0.0);      // add part time alfa3 if needed
+                        wage_ue_2b += (ue_2b_full[rg] == false ? (expf(sgma[2]*tmp3) + alfa3)/2.0 : 0.0);      // add part time alfa3 if needed
                         wage_work_2w[rg] = draw_wage(wage_w[0], prob_work_2w[rg]);      // equal wage if ind come from and got an offer and -inf if didn't
                         float wage_work_2b = draw_blue_wage(wage_b[0], prob_work_2b_full[rg], prob_work_2b_part[rg], work_2b_full[rg], part_wage_factor); // equal wage if ind come from and got an offer and -inf
-                        wage_work_2b += (work_2b_full[rg] == false ? alfa3/2.0 : 0.0);  // add part time alfa3 if needed
+                        wage_work_2b += (work_2b_full[rg] == false ? (expf(sgma[2]*tmp3) + alfa3)/2.0 : 0.0);  // add part time alfa3 if needed
 
                         // the equivalent to "wage" when UE is chosen
                         choose_ue[rg] =  taste[rg] - rent[rg][type] + husband[rg] + expf(sgma[2]*tmp3) + alfa3 + choose_ue_emax;
@@ -2022,16 +2020,17 @@ static double estimation(float* params)
                     D_W_B[rg] = get_discrete_index(tmpdb);
 
                     // sampling the wage for each of the transitions
-                    
+                    const float tmp3 = epsilon_f(draw,I,t,from_h_rg,UE,type);
+
                     wage_nonfired_2w[rg] = draw_wage(wage_w_non_f[rg], prob_nonfired_w[type]);          //equal wage if ind wasn't fired  and -inf if was fired
                     const float wage_nonfired_2b_full = draw_wage(wage_b_non_f[rg], prob_nonfired_b[type]);  //equal wage if ind wasn't fired  and -inf if was fired
-                    const float wage_nonfired_2b_part = draw_wage(wage_b_non_f[rg]/2.0, prob_nonfired_b[type]) + alfa3/2.0;  //equal wage if ind wasn't fired  and -inf if was fired
+                    const float wage_nonfired_2b_part = draw_wage(wage_b_non_f[rg]/2.0, prob_nonfired_b[type]) + (expf(sgma[2]*tmp3) + alfa3)/2.0;  //equal wage if ind wasn't fired  and -inf if was fired
                     wage_ue_2w[rg] = draw_wage(wage_w[rg], prob_ue_2w);                           //equal wage if i come fron ue and got an offer and -inf if didn't
                     float wage_ue_2b = draw_blue_wage(wage_b[rg], prob_ue_2b_full, prob_ue_2b_part, ue_2b_full[rg], part_wage_factor);      //equal wage if i come fron ue and got an offer and -inf if didn't
-                    wage_ue_2b += (ue_2b_full[rg] == false ? alfa3/2.0 : 0.0);                      // add part time alfa3 if needed
+                    wage_ue_2b += (ue_2b_full[rg] == false ? (expf(sgma[2]*tmp3) + alfa3)/2.0 : 0.0);                      // add part time alfa3 if needed
                     wage_work_2w[rg] = draw_wage(wage_w[rg], prob_work_2w);                       //equal wage if ind come from and got an offer and -inf if didn't
                     float wage_work_2b = draw_blue_wage(wage_b[rg], prob_work_2b_full, prob_work_2b_part, work_2b_full[rg], part_wage_factor);  //equal wage if ind come from and got an offer and -inf if didn't
-                    wage_work_2b += (work_2b_full[rg] == false ? alfa3/2.0 : 0.0);                  // add part time alfa3 if needed
+                    wage_work_2b += (work_2b_full[rg] == false ? (expf(sgma[2]*tmp3) + alfa3)/2.0 : 0.0);                  // add part time alfa3 if needed
 
                     const float choose_ue_emax = beta*EMAX(t+1,k_to_index(real_k),rg,0,UE,0,type);
                     const float choose_b_emax_non_f = beta*EMAX(t+1,k_to_index(real_k+1.0),rg,0,BLUE,D_W_B[rg],type);
@@ -2040,7 +2039,7 @@ static double estimation(float* params)
                     const float taste_rent_husband = taste[rg] - rent[rg][type] + husband[rg];
                     
                     // the equivalent to "wage" when UE is chosen
-                    choose_ue[rg] =  taste_rent_husband + expf(sgma[2]*epsilon_f(draw,I,t,from_h_rg,UE,type)) + alfa3 + choose_ue_emax;
+                    choose_ue[rg] =  taste_rent_husband + expf(sgma[2]*tmp3) + alfa3 + choose_ue_emax;
                     if (t == 0)
                     {
                         // add alfa1 utility for t=0
