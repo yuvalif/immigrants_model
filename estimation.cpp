@@ -1445,11 +1445,6 @@ static double estimation(float* params)
 
         for (unsigned short t = T; t > 0; --t)
         {
-            short rg = live(I,t);
-            if (rg < 0)
-            {
-                continue;
-            }
             // loop over periods (decdresing)
             const unsigned long t_sq = t*t;
             const unsigned short age40 = (((float)AGE + (float)t/2.0f) > 39.5f);
@@ -1615,24 +1610,11 @@ static double estimation(float* params)
 
                         // the equivalent to "wage" when UE is chosen
                         choose_ue[rg] =  taste[rg] - rent[rg][type] + husband[rg] + expf(sgma[2]*tmp3) + alfa3 + choose_ue_emax;
-                        const float choose_ue_move = choose_ue[rg] - moving_cost[type];
 
                         const float tmp = taste[rg] - rent[rg][type] + husband[rg] + choose_b_emax[0];
                         ue_2b[rg] = wage_ue_2b + tmp;
                         work_2b[rg] = wage_work_2b + tmp;
 
-                        // stay in ue and move housing
-                        get_max(from_ue_max_utility, choose_ue_move);
-                        // move from ue to blue and move housing
-                        get_max(from_ue_max_utility, ue_2b[rg] - moving_cost[type]);
-                        // move from blue to ue and move housing
-                        get_max(from_b_max_utility, choose_ue_move);
-                        // stay in blue and move housing
-                        get_max(from_b_max_utility, work_2b[rg] - moving_cost[type]);
-                        // move from white to ue and move housing
-                        get_max(from_w_max_utility, choose_ue_move);
-                        // move from white to blue and move housing
-                        get_max(from_w_max_utility, work_2b[rg] - moving_cost[type]);
                     }//close rg
 
                     float ue_2w[RG_SIZE][RG_SIZE];
@@ -1651,12 +1633,6 @@ static double estimation(float* params)
                                 nonfired_2w[h_rg][w_rg][dwage] = 
                                 wage_nonfired_2w[w_rg][dwage] + taste[h_rg] - rent[h_rg][type] + husband[h_rg] - travel_cost(h_rg,w_rg) + choose_w_emax[h_rg][w_rg][dwage];
                             }   
-                            // move from ue to white and move housing
-                            get_max(from_ue_max_utility, ue_2w[h_rg][w_rg] - moving_cost[type]);
-                            // move from blue to white and move housing
-                            get_max(from_b_max_utility, work_2w[h_rg][w_rg] - moving_cost[type]);
-                            // stay in white in different work region and move housing
-                            get_max(from_w_max_utility, work_2w[h_rg][w_rg] - moving_cost[type]);
                         }//close to_w_rg
                     }//close rg
 
@@ -1719,7 +1695,6 @@ static double estimation(float* params)
                                     {
                                         from_w_max_utility_arr[from_w_rg][dwage] = from_w_max_utility_tmp;
                                         // stayed in white in the same work region and move housing
-                                        get_max(from_w_max_utility_arr[from_w_rg][dwage], nonfired_2w[to_w_rg][from_w_rg][dwage] - moving_cost[type]);
                                     } //close dwage
                                 } // end to_w_rg
 
@@ -1795,7 +1770,6 @@ static double estimation(float* params)
                                         {
                                             nonfired_2w[to_w_rg][from_w_rg][dwage] *= (1.0f+terminal);
                                         }
-                                        get_max(from_w_max_utility_arr[from_w_rg][dwage], nonfired_2w[to_w_rg][from_w_rg][dwage] - moving_cost[type]);
                                     } //close dwage
                                 } // end to_w_rg
 
