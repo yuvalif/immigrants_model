@@ -78,7 +78,9 @@ const unsigned int DRAWS        = 30;               // draws for emax
 const unsigned int RG_SIZE      = 7;                // # of regions
 const unsigned int TC_SIZE      = 6;                // travel cost
 const unsigned int STATE_SIZE   = 3;                // # of states: white, blue, unemployed
+#ifdef TRACE
 const unsigned int ALL_STATE_SIZE   = 4;            // # of states: white, blue full, blue part, unemployed
+#endif
 #ifdef SIMULATION
 const unsigned int BASE_DRAWS_F = 1000;
 const unsigned int TYPE_0_OF_1000 = BASE_DRAWS_F*0.085;
@@ -488,8 +490,10 @@ const unsigned short UE    = 0;
 const unsigned short BLUE  = 2;
 const unsigned short WHITE = 1;
 
+#ifdef TRACE
 const unsigned short FULL  = 0;
 const unsigned short PART  = 1;
+#endif
 
 const unsigned short MOMENTS_PERIODS = 12;
 
@@ -849,13 +853,13 @@ void print_choices(float* choices)
     printf("Blue Utility (full time)     :  ");
     for (unsigned short i = 0; i < RG_SIZE; ++i)
     {
-        printf("%10.0f (%hu), ", choices[i+7], i+7);
+        printf("%10.0f (%hu), ", choices[i+7], (unsigned short)(i+7));
     }
     printf("\n");
     printf("Blue Utility (part time)     :");
     for (unsigned short i = 0; i < RG_SIZE; ++i)
     {
-        printf("%10.0f (%hu), ", choices[i+14], i+14);
+        printf("%10.0f (%hu), ", choices[i+14], (unsigned short)(i+7));
     }
     for (unsigned short i = 0; i < RG_SIZE; ++i)
     {
@@ -863,7 +867,7 @@ void print_choices(float* choices)
         printf("White Utility (work region %hu):", i);
         for (unsigned short j = 0; j < RG_SIZE; ++j)
         {
-            printf("%10.0f (%hu), ", choices[(i+3)*7+j], (i+3)*7+j);
+            printf("%10.0f (%hu), ", choices[(i+3)*7+j], (unsigned short)((i+3)*7+j));
         }
     }
 }
@@ -1224,7 +1228,7 @@ static double estimation(float* params)
         printf("--------------------------------------------------------------------------------------------------------------------------\n");
         for (unsigned short h_rg = 0; h_rg < RG_SIZE; ++h_rg)
         {
-            printf("%hu   \t", h_rg + 1);
+            printf("%d   \t", h_rg + 1);
             for (unsigned short w_rg = 0; w_rg < RG_SIZE; ++w_rg)
             {
                 printf("%f\t", travel_cost_arr[h_rg][w_rg]);
@@ -1441,6 +1445,11 @@ static double estimation(float* params)
 
         for (unsigned short t = T; t > 0; --t)
         {
+            short rg = live(I,t);
+            if (rg < 0)
+            {
+                continue;
+            }
             // loop over periods (decdresing)
             const unsigned long t_sq = t*t;
             const unsigned short age40 = (((float)AGE + (float)t/2.0f) > 39.5f);
@@ -1542,8 +1551,6 @@ static double estimation(float* params)
                     {
                         float choose_ue_emax;
                         float choose_b_emax[D_WAGE];
-                        // TODO remove tmp0
-                        //float tmp0 = epsilon_r(rg,draw);
                         float tmp1 = epsilon_b(draw,I,t,rg,WHITE,type);
                         float tmp2 = epsilon_b(draw,I,t,rg,BLUE,type);
                         float tmp3 = epsilon_b(draw,I,t,rg,UE,type);
@@ -1874,7 +1881,7 @@ static double estimation(float* params)
         for (unsigned short draw = 0; draw < draws_f; ++draw)
         {
 #ifdef FULL_TRACE
-            printf("%hu %hu %hu %hu ", I, (REP1 ? 1 : (REP2 ? 2 : (REP3 ? 3 : 4))), type, draw); 
+            printf("%d %d %d %d ", I, (REP1 ? 1 : (REP2 ? 2 : (REP3 ? 3 : 4))), type, draw); 
 #endif
             const unsigned short BLUE_STATE_FULL = 0;
             const unsigned short BLUE_STATE_PART = 1;
@@ -1912,6 +1919,11 @@ static double estimation(float* params)
 
             for (unsigned short t = 0; t < PERIODS; ++t)// loop over periods
             {
+                short rg = live(I,t);
+                if (rg < 0)
+                {
+                    continue;
+                }
                 bool w_wage_flag = false;
                 bool b_wage_flag = false;
                 const unsigned short age40 = (((float)AGE + (float)t/2.0f) > 39.5f);
@@ -1946,8 +1958,9 @@ static double estimation(float* params)
                 bool ue_2b_full[RG_SIZE];
                 bool work_2b_full[RG_SIZE];
 
-                for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                 {
+                    assert(rg > -1);
+
                     // adjust rent with R
                     rent[rg][type] = rent[rg][type]*(1.0 + R[rg]);
 
@@ -2072,7 +2085,6 @@ static double estimation(float* params)
 
                 if (from_state == UE)
                 {
-                    for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                     {
                         float tmp_moving_cost = 0.0;
                         if (t != 0 && from_h_rg != rg)
@@ -2082,7 +2094,6 @@ static double estimation(float* params)
                             {
                                 tmp_moving_cost += moving_cost_0;
                             }
-                            //printf("%d from %hu to %hu %f\n", t, from_h_rg, rg, tmp_moving_cost); DEBUG
                         }
                         // stay in ue
                         choices[rg] = choose_ue[rg] - tmp_moving_cost;
@@ -2097,7 +2108,6 @@ static double estimation(float* params)
                 } // close state UE
                 else if (from_state == BLUE)
                 {
-                    for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                     {
                         float tmp_moving_cost = 0.0;
                         if (t != 0 && from_h_rg != rg)
@@ -2107,7 +2117,6 @@ static double estimation(float* params)
                             {
                                 tmp_moving_cost += moving_cost_0;
                             }
-                            //printf("%d from %hu to %hu %f\n", t, from_h_rg, rg, tmp_moving_cost); DEBUG
                         }
                         // move to ue
                         choices[rg] = choose_ue[rg] - tmp_moving_cost;
@@ -2144,7 +2153,6 @@ static double estimation(float* params)
                 }
                 else if (from_state == WHITE)
                 {
-                    for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                     {
                         float tmp_moving_cost = 0.0;
                         if (t != 0 && from_h_rg != rg)
@@ -2196,7 +2204,6 @@ static double estimation(float* params)
 
                 // check that a maximum was found
                 assert(max_index > -1);
-                //print_choices(choices);
                 
                 if (t == PERIODS-1)
                 {
@@ -2221,9 +2228,12 @@ static double estimation(float* params)
                     // work region 2 = blue, part time
                     // (work region - 3) = white work region
                 }
-
+                if (rg != tmp_house_rg)
+                {
+                    std::cout << "rg = " << rg << " tmp_house_rg = " << tmp_house_rg << std::endl;
+                }
 #ifdef FULL_TRACE_INDEX
-                printf("%hu ", max_index);
+                printf("%d ", max_index);
 #elif FULL_TRACE_WAGE
                 {
                     float current_wage;
@@ -3339,8 +3349,8 @@ static double estimation(float* params)
     memset(house_distribution, '\0', sizeof(house_distribution));
     for (unsigned short I = 0; I < OBSR; ++I)
     {
-        unsigned short last_t = PERIODS_arr[I];
-        for (unsigned short t = 0; t < last_t ; ++t)
+        //unsigned short last_t = PERIODS_arr[I];
+        for (unsigned short t = 0; t < MOMENTS_PERIODS ; ++t)
         {
             if (live(I,t) > -1)
             {
@@ -3425,7 +3435,7 @@ static double estimation(float* params)
     
     for (unsigned short h_rg = 0; h_rg < RG_SIZE; ++h_rg)
     {
-        printf("%hu\t%lu\t", h_rg+1, house_work_rg_notype_distribution_count[h_rg]);
+        printf("%hu\t%lu\t", (unsigned short)(h_rg+1), house_work_rg_notype_distribution_count[h_rg]);
         for (unsigned short w_rg = 0; w_rg < RG_SIZE; ++w_rg)
         {
             printf("%f\t", (float)house_work_rg_notype_distribution[h_rg][w_rg]/(float)house_work_rg_notype_distribution_count[h_rg]);
@@ -3433,13 +3443,13 @@ static double estimation(float* params)
         printf("\n");
     }
     printf("\n------------------------------------------------------------------------------------------------------------------------------------\n");
-    printf("%hu\t-----\t57.63000\t3.390000\t38.98000\t0.000000\t0.000000\t0.000000\t0.000000\n", 1);
-    printf("%hu\t-----\t47.47000\t30.30000\t14.14000\t8.080000\t0.000000\t0.000000\t0.000000\n", 2);
-    printf("%hu\t-----\t25.96000\t5.140000\t58.10000\t4.110000\t3.340000\t0.510000\t2.830000\n", 3);
-    printf("%hu\t-----\t0.000000\t0.000000\t0.000000\t90.58000\t9.420000\t0.000000\t0.000000\n", 4);
-    printf("%hu\t-----\t0.000000\t1.310000\t3.270000\t32.03000\t63.40000\t0.000000\t0.000000\n", 5);
-    printf("%hu\t-----\t1.880000\t0.000000\t9.380000\t0.000000\t0.000000\t88.75000\t0.000000\n", 6);
-    printf("%hu\t-----\t0.000000\t0.000000\t0.000000\t0.000000\t0.000000\t0.000000\t100.0000\n", 7);
+    printf("%d\t-----\t57.63000\t3.390000\t38.98000\t0.000000\t0.000000\t0.000000\t0.000000\n", 1);
+    printf("%d\t-----\t47.47000\t30.30000\t14.14000\t8.080000\t0.000000\t0.000000\t0.000000\n", 2);
+    printf("%d\t-----\t25.96000\t5.140000\t58.10000\t4.110000\t3.340000\t0.510000\t2.830000\n", 3);
+    printf("%d\t-----\t0.000000\t0.000000\t0.000000\t90.58000\t9.420000\t0.000000\t0.000000\n", 4);
+    printf("%d\t-----\t0.000000\t1.310000\t3.270000\t32.03000\t63.40000\t0.000000\t0.000000\n", 5);
+    printf("%d\t-----\t1.880000\t0.000000\t9.380000\t0.000000\t0.000000\t88.75000\t0.000000\n", 6);
+    printf("%d\t-----\t0.000000\t0.000000\t0.000000\t0.000000\t0.000000\t0.000000\t100.0000\n", 7);
 
     ////////////////////// House Region Distribution per Education Level//////////////////////
     for (unsigned int edu_level = 0; edu_level < EDU_LEVELS; ++edu_level)
