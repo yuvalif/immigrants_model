@@ -27,7 +27,8 @@ estimation_sim4_fullrent \
 estimation_sim4_fullwage \
 estimation_test_full \
 estimation_test_fullwage \
-estimation_ref 
+estimation_ref \
+estimation_edu
 
 all: $(TARGETS)
 
@@ -95,6 +96,9 @@ estimation_ref: estimation.cpp
 	@echo Building $@...;
 	$(CC) $(CFLAGS) -DTRACE -DINFO -DREF_PARAM -o $@ $<;
 
+estimation_edu: estimation.cpp
+	@echo Building $@...;
+	$(CC) $(CFLAGS) -DPRINT_EDU_LEVEL -DTRACE -DINFO -o $@ $<;
 clean:
 	@echo Removing all executables...
 	@rm -rf $(TARGETS)
