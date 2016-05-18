@@ -2218,7 +2218,7 @@ static double estimation(float* params)
                         // blue, full
                         current_wage = ((b_wage_flag == false) ? wage_b[tmp_house_rg] : wage_b_non_f[tmp_house_rg])/6.0;
                     }
-                    if (tmp_work_rg == 2)
+                    else if (tmp_work_rg == 2)
                     {
                         // blue, part
                         current_wage = ((b_wage_flag == false) ? wage_b[tmp_house_rg]/2.0 : wage_b_non_f[tmp_house_rg])/12.0;
@@ -2227,6 +2227,11 @@ static double estimation(float* params)
                     {
                         // white
                         current_wage = ((w_wage_flag == false) ? wage_w[tmp_work_rg-3] : wage_w_non_f[tmp_work_rg-3])/6.0;
+                    }
+                    else if (tmp_work_rg == 0)
+                    {
+                        // unemployed
+                        current_wage = 0.0;
                     }
                     else
                     {
