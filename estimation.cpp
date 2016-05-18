@@ -1898,6 +1898,11 @@ static double estimation(float* params)
                 short rg = live(I,t);
                 if (rg < 0)
                 {
+#ifdef FULL_TRACE_INDEX
+                    printf("%d ", 999);
+#elif FULL_TRACE_WAGE
+                    printf("%.3f ",  0.0);
+#endif
                     continue;
                 }
                 bool w_wage_flag = false;
