@@ -1983,9 +1983,16 @@ static double estimation(float* params)
                     }
 
                     taste[rg] = const_taste[rg];
-                    const float tmp1 = epsilon_f(draw,I,t,rg,WHITE,type);
-                    wage_w_non_f[rg] = 6.0f*expf(rg_const_tmp_w + beta20[rg] + sgma[0]*(tmp1+row_w*P_W_ERROR[dwage_w]))*WAGE_REF_PARAM;
-                    wage_w[rg] = 6.0f*expf(rg_const_tmp_w + beta20[rg] + sgma[0]*tmp1)*WAGE_REF_PARAM;
+                    for (unsigned int w_rg = 0; w_rg < RG_SIZE; ++w_rg)
+                    {
+                        const float tmp1 = epsilon_f(draw,I,t,w_rg,WHITE,type);
+                        const float tmpdw = tmp1 + row_w*P_W_ERROR[dwage_w];
+                        D_W_W[rg] = get_discrete_index(tmpdw);
+                        wage_w_non_f[w_rg] = 6.0f*expf(rg_const_tmp_w + beta20[w_rg] + sgma[0]*(tmp1+row_w*P_W_ERROR[dwage_w]))*WAGE_REF_PARAM;
+                        wage_w[w_rg] = 6.0f*expf(rg_const_tmp_w + beta20[w_rg] + sgma[0]*tmp1)*WAGE_REF_PARAM;
+                        wage_ue_2w[rg] = draw_wage(wage_w[w_rg], prob_ue_2w);                           //equal wage if i come fron ue and got an offer and -inf if didn't
+                        wage_work_2w[rg] = draw_wage(wage_w[w_rg], prob_work_2w);                       //equal wage if ind come from and got an offer and -inf if didn't
+                    }
                     const float tmp2 = epsilon_f(draw,I,t,rg,BLUE,type);
                     wage_b_non_f[rg] = 6.0f*expf(rg_const_tmp_b + beta30[rg] + sgma[1]*(tmp2+row_b*P_W_ERROR[dwage_b]))*WAGE_REF_PARAM;
                     wage_b[rg] = 6.0f*expf(rg_const_tmp_b + beta30[rg] + sgma[1]*tmp2)*WAGE_REF_PARAM;
@@ -1993,20 +2000,11 @@ static double estimation(float* params)
 #ifdef SIMULATION
                     if (sim_type == WAGE_SIM)
                     {
-                        if (rg == 4 || rg == 5)
-                        {
-                            wage_w_non_f[rg] *= (1.0 + sim_percent);
-                            wage_w[rg] *= (1.0 + sim_percent);
-                            wage_b_non_f[rg] *= (1.0 + sim_percent);
-                            wage_b[rg] *= (1.0 + sim_percent);
-                            
-                        }
+                        assert(0);
                     }
 #endif
 
-                    const float tmpdw = tmp1 + row_w*P_W_ERROR[dwage_w];
                     const float tmpdb = tmp2 + row_b*P_W_ERROR[dwage_b];
-                    D_W_W[rg] = get_discrete_index(tmpdw);
                     D_W_B[rg] = get_discrete_index(tmpdb);
 
                     // sampling the wage for each of the transitions
@@ -2014,10 +2012,8 @@ static double estimation(float* params)
                     wage_nonfired_2w[rg] = draw_wage(wage_w_non_f[rg], prob_nonfired_w[type]);          //equal wage if ind wasn't fired  and -inf if was fired
                     const float wage_nonfired_2b_full = draw_wage(wage_b_non_f[rg], prob_nonfired_b[type]);  //equal wage if ind wasn't fired  and -inf if was fired
                     const float wage_nonfired_2b_part = draw_wage(wage_b_non_f[rg]/2.0, prob_nonfired_b[type]) + alfa3/2.0;  //equal wage if ind wasn't fired  and -inf if was fired
-                    wage_ue_2w[rg] = draw_wage(wage_w[rg], prob_ue_2w);                           //equal wage if i come fron ue and got an offer and -inf if didn't
                     float wage_ue_2b = draw_blue_wage(wage_b[rg], prob_ue_2b_full, prob_ue_2b_part, ue_2b_full[rg], part_wage_factor);      //equal wage if i come fron ue and got an offer and -inf if didn't
                     wage_ue_2b += (ue_2b_full[rg] == false ? alfa3/2.0 : 0.0);                      // add part time alfa3 if needed
-                    wage_work_2w[rg] = draw_wage(wage_w[rg], prob_work_2w);                       //equal wage if ind come from and got an offer and -inf if didn't
                     float wage_work_2b = draw_blue_wage(wage_b[rg], prob_work_2b_full, prob_work_2b_part, work_2b_full[rg], part_wage_factor);  //equal wage if ind come from and got an offer and -inf if didn't
                     wage_work_2b += (work_2b_full[rg] == false ? alfa3/2.0 : 0.0);                  // add part time alfa3 if needed
 
@@ -2212,6 +2208,7 @@ static double estimation(float* params)
                 if (rg != tmp_house_rg)
                 {
                     std::cout << "rg = " << rg << " tmp_house_rg = " << tmp_house_rg << std::endl;
+                    assert(0);
                 }
 #ifdef FULL_TRACE_INDEX
                 printf("%d ", max_index);
@@ -2306,8 +2303,8 @@ static double estimation(float* params)
                     // increase experience - by 1 for full, by 0.5 for part
                     real_k += ((blue_state == BLUE_STATE_FULL) ? 1.0 : 0.5);
                     // in blue house_rg equals work_rg
-                    work_rg_arr[t][draw] = tmp_house_rg;
-                    from_w_rg = tmp_house_rg;
+                    work_rg_arr[t][draw] = tmp_work_rg;
+                    from_w_rg = tmp_work_rg;
                     dwage_b = D_W_B[tmp_house_rg];
                     dwage_w = 0;
                 }
