@@ -21,12 +21,9 @@ estimation_sim_full \
 estimation_sim_fullrent \
 estimation_sim_fullwage \
 estimation_stdev  \
-estimation_sim4 \
-estimation_sim4_full \
-estimation_sim4_fullrent \
-estimation_sim4_fullwage \
 estimation_test_full \
 estimation_test_fullwage \
+estimation_test_fullrent \
 estimation_ref \
 estimation_edu
 
@@ -91,6 +88,10 @@ estimation_test_full: estimation.cpp
 estimation_test_fullwage: estimation.cpp
 	@echo Building $@...;
 	$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_WAGE -o $@ $<;
+
+estimation_test_fullrent: estimation.cpp
+	@echo Building $@...;
+	$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_RENT -o $@ $<;
 
 estimation_ref: estimation.cpp
 	@echo Building $@...;
