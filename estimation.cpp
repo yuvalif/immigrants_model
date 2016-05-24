@@ -87,7 +87,7 @@ const unsigned int DRAWS_F      = TYPE_1_OF_1000;   // max of: T0 = 85, T1 = 605
 #ifdef WAGE_SELECTION
 const unsigned int DRAWS_F      = 333;              // draws for forward solving
 #else
-const unsigned int DRAWS_F      = 100;              // draws for forward solving
+const unsigned int DRAWS_F      = 333;              // draws for forward solving
 #endif // WAGE_SELECTION
 #endif // SIMULATION
 const unsigned int D_WAGE       = 6;                //
@@ -1100,7 +1100,9 @@ static double estimation(float* params)
 
     // string likelihood per individual    
     double like_arr[OBSR];
+#ifdef TRACE
     float PROB_T0[OBSR];
+#endif
     float PROB_T1[OBSR];
     float
         PROB_T2[OBSR];
@@ -1187,7 +1189,9 @@ static double estimation(float* params)
 
         PROB_T1[I] = expf(type1_edu)/(1.0+(expf(type1_edu)+expf(type2_edu)));
         PROB_T2[I] = expf(type2_edu)/(1.0+(expf(type1_edu)+expf(type2_edu)));
+#ifdef TRACE
         PROB_T0[I] = 1.0-PROB_T1[I]-PROB_T2[I];
+#endif
 
         rent_for_all_regions[type] = gama1*M+gama2*KIDS+gama3*TYPE1+gama4*TYPE2; //global rent without gama0 by region
 
@@ -2059,7 +2063,7 @@ static double estimation(float* params)
                     printf("%.3f ",  current_wage);
                 }
 #elif FULL_TRACE_RENT
-                printf("%.3f ", rent[tmp_house_rg]/6.0f);   
+                printf("%.3f ", rent[tmp_house_rg][type]/6.0f);   
 #endif
 
 #ifdef SIMULATION

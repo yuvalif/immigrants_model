@@ -16,6 +16,7 @@ estimation_test \
 estimation_stdev  \
 estimation_test_full \
 estimation_test_fullwage \
+estimation_test_fullrent \
 estimation_test_m
 
 all: $(TARGETS)
@@ -79,6 +80,10 @@ estimation_test_full: estimation.cpp
 estimation_test_fullwage: estimation.cpp
 	@echo Building $@...;
 	@$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_WAGE -o $@ $<;
+
+estimation_test_fullrent: estimation.cpp
+	@echo Building $@...;
+	@$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_RENT -o $@ $<;
 
 estimation_wage_selection: estimation.cpp
 	@echo Building $@...;
