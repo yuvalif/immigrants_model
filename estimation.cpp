@@ -1198,7 +1198,7 @@ static double estimation(float* params)
 #ifndef WAGE_SELECTION
         moving_cost[type] = TYPE1*alfa2[1]+TYPE2*alfa2[2]+TYPE0*alfa2[0];
 #else
-        const float moving_cost[type] = INFINITY; 
+        moving_cost[type] = INFINITY; 
 #endif
         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
         {
@@ -1612,9 +1612,9 @@ static double estimation(float* params)
 #endif
             } // end loop over experience
         } // end loop over periods
+#endif // WAGE_SELECTION
     } // enf of loop over types
 
-#endif // WAGE_SELECTION
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////                   SOLVING FORWARD                                          /////////////

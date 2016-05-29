@@ -17,6 +17,8 @@ estimation_stdev  \
 estimation_test_full \
 estimation_test_fullwage \
 estimation_test_fullrent \
+estimation_wage_selection \
+estimation_fullwage_selection \
 estimation_test_m
 
 all: $(TARGETS)
