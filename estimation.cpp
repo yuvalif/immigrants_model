@@ -497,43 +497,6 @@ static bool load_moments(const char* filename)
 #ifdef TRACE_LOAD
                     printf("line[%hu]: %s", I, line);
 #endif
-#ifdef SANITY
-                    for (unsigned short t = 0; t < MOMENTS_PERIODS; ++t)
-                    {
-                        short st = sample(I,t);
-                        if (st != -1)
-                        {
-                            // all info must be known
-                            if (occupation(I,t) == -1 || live(I,t) == -1 || (work(I,t) == -1 && st > 13))
-                            {
-                                printf("SANITY: data missing for I = %hu, t = %hu\n", I, t);
-                            }
-                
-                            short work_rg;
-                            short house_rg;
-                            div_t house_info = div(st,7);
-                            house_rg = (short)house_info.rem;
-                            work_rg = (short)house_info.quot;
-                            // work region 0 = unemployment
-                            // work region 1 = blue
-                            // (work region - 2) = white work region
-                            if (live(I,t) != -1 && live(I,t) != house_rg)
-                            {
-                                printf("SANITY: housing region inconsistent for I = %hu, t = %hu\n", I, t);
-                            }
-                            if (occupation(I,t) != -1 && ((work_rg == 0 && occupation(I,t) != UE) ||
-                                (work_rg == 1 && occupation(I,t) != BLUE) ||
-                                (work_rg > 1 && occupation(I,t) != WHITE)))
-                            {
-                                printf("SANITY: occupation inconsistent for I = %hu, t = %hu\n", I, t);
-                            }
-                            if (work(I,t) != -1 && work_rg > 1 && (work_rg - 2) != work(I,t))
-                            {
-                                printf("SANITY: work region inconsistent for I = %hu, t = %hu\n", I, t);
-                            }
-                        }
-                    }
-#endif // SANITY
                     ++I;
                 }
             } 
@@ -1723,7 +1686,12 @@ static double estimation(float* params)
                 unsigned short D_W_W[RG_SIZE];
                 unsigned short D_W_B[RG_SIZE];
 
+#ifdef RANDOM_SELECTION
+                const short rg = (unsigned short)((float)RG_SIZE*(rand()/(RAND_MAX + 1.0f)));
+                from_h_rg = rg;
+#else
                 for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
+#endif
                 {
                     // adjust rent with R
                     rent[rg][type] = rent[rg][type]*(1.0f + R[rg]);
@@ -1755,13 +1723,18 @@ static double estimation(float* params)
                         }
                     }
 #endif // WAGE_SELECTION
-                    //float tmp0 = epsilon_r_f(rg,draw);
                     taste[rg] = const_taste[rg];// + expf(sgma[3]*tmp0);
-                    // tmp1_w = beta21*SCHOOL+beta22*EXP_U+beta23*EXP_U_SQ+beta27*TYPE2+beta28*TYPE3+beta26*age40+beta24*k+beta25*k_sq+beta20[rg]
-                    float tmp1 = epsilon_f(draw,I,t,rg,WHITE);
-                    wage_w_non_f[rg] = 6.0f*expf(rg_const_tmp_w + beta20[rg] + sgma[0]*(tmp1+row_w*P_W_ERROR[dwage_w]))*WAGE_REF_PARAM;
-                    wage_w[rg] = 6.0f*expf(rg_const_tmp_w + beta20[rg] + sgma[0]*tmp1)*WAGE_REF_PARAM;
-                    // tmp1_b = beta31*SCHOOL+beta32*EXP_U+beta33*EXP_U_SQ+beta37*TYPE2+beta38*TYPE3+beta36*age40+beta34*k+beta35*k_sq+beta30[rg]
+                    for (unsigned int w_rg = 0; w_rg < RG_SIZE; ++w_rg)
+                    {
+                        // tmp1_w = beta21*SCHOOL+beta22*EXP_U+beta23*EXP_U_SQ+beta27*TYPE2+beta28*TYPE3+beta26*age40+beta24*k+beta25*k_sq+beta20[rg]
+                        float tmp1 = epsilon_f(draw,I,t,w_rg,WHITE);
+                        float tmpdw = tmp1 + row_w*P_W_ERROR[dwage_w];
+                        D_W_W[w_rg] = get_discrete_index(tmpdw);
+                        wage_w_non_f[w_rg] = 6.0f*expf(rg_const_tmp_w + beta20[w_rg] + sgma[0]*(tmp1+row_w*P_W_ERROR[dwage_w]))*WAGE_REF_PARAM;
+                        wage_w[w_rg] = 6.0f*expf(rg_const_tmp_w + beta20[w_rg] + sgma[0]*tmp1)*WAGE_REF_PARAM;
+                        wage_ue_2w[w_rg] = draw_wage_f(wage_w[w_rg], prob_ue_2w);       //equal wage if i come fron ue and got an offer and -inf if didn't
+                        wage_work_2w[w_rg] = draw_wage_f(wage_w[w_rg], prob_work_2w);   //equal wage if ind come from and got an offer and -inf if didn't
+                    }
                     float tmp2 = epsilon_f(draw,I,t,rg,BLUE);
                     wage_b_non_f[rg] = 6.0f*expf(rg_const_tmp_b + beta30[rg] + sgma[1]*(tmp2+row_b*P_W_ERROR[dwage_b]))*WAGE_REF_PARAM;
                     wage_b[rg] = 6.0f*expf(rg_const_tmp_b + beta30[rg] + sgma[1]*tmp2)*WAGE_REF_PARAM;
@@ -1780,25 +1753,20 @@ static double estimation(float* params)
                     }
 #endif
 
-                    float tmpdw = tmp1 + row_w*P_W_ERROR[dwage_w];
                     float tmpdb = tmp2 + row_b*P_W_ERROR[dwage_b];
-                    D_W_W[rg] = get_discrete_index(tmpdw);
                     D_W_B[rg] = get_discrete_index(tmpdb);
 
                     // sampling the wage for each of the transitions
                     // note: need to check if it is more efficient to calculate the wage on the fly if needed
                     wage_nonfired_2w[rg] = draw_wage_f(wage_w_non_f[rg], prob_nonfired_w[type]);//equal wage if ind wasn't fired  and -inf if was fired
-                    float wage_nonfired_2b = draw_wage_f(wage_b_non_f[rg], prob_nonfired_b[type]);//equal wage if ind wasn't fired  and -inf if was fired
-                    wage_ue_2w[rg] = draw_wage_f(wage_w[rg], prob_ue_2w);       //equal wage if i come fron ue and got an offer and -inf if didn't
-                    float wage_ue_2b = draw_wage_f(wage_b[rg], prob_ue_2b);       //equal wage if i come fron ue and got an offer and -inf if didn't
-                    wage_work_2w[rg] = draw_wage_f(wage_w[rg], prob_work_2w);   //equal wage if ind come from and got an offer and -inf if didn't
-                    float wage_work_2b = draw_wage_f(wage_b[rg], prob_work_2b);   //equal wage if ind come from and got an offer and -inf if didn't
+                    const float wage_nonfired_2b = draw_wage_f(wage_b_non_f[rg], prob_nonfired_b[type]);//equal wage if ind wasn't fired  and -inf if was fired
+                    const float wage_ue_2b = draw_wage_f(wage_b[rg], prob_ue_2b);       //equal wage if i come fron ue and got an offer and -inf if didn't
+                    const float wage_work_2b = draw_wage_f(wage_b[rg], prob_work_2b);   //equal wage if ind come from and got an offer and -inf if didn't
 
                     float choose_ue_emax = beta*EMAX(t+1,k,rg,0,UE,0,type);
                     float choose_b_emax_non_f = beta*EMAX(t+1,k+1,rg,0,BLUE,D_W_B[rg],type);
                     float choose_b_emax = beta*EMAX(t+1,k+1,rg,0,BLUE,0,type);
 
-                    // should optimize by copy the pointer
                     for (unsigned short w_rg = 0; w_rg < RG_SIZE; ++w_rg)
                     {
                         choose_w_emax_non_f[rg][w_rg] = beta*EMAX(t+1,k+1,rg,w_rg,WHITE,D_W_W[rg],type);
@@ -1820,13 +1788,21 @@ static double estimation(float* params)
 //////////////////////////////////////////////////// start maximization    ////////////////////////////////////
 
                 float choices[STATE_VECTOR_SIZE];
+                for (unsigned int i = 0; i < STATE_VECTOR_SIZE; ++i)
+                {
+                    // initialize choices with -inf
+                    choices[i] = -INFINITY;
+                }
+
                 if (from_state == UE)
                 {
 #ifndef WAGE_SELECTION
                     if (t > 0)
 #endif
                     {
+#ifndef RANDOM_SELECTION
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
+#endif
                         {
                             choices[rg] = choose_ue[rg] - moving_cost[type];
                             choices[rg+7] = ue_2b[rg] - moving_cost[type];
@@ -1836,7 +1812,9 @@ static double estimation(float* params)
                             get_max_idx(max_utility, max_index, ue_2b[rg] - moving_cost[type], rg+7);
                         }
                         float ue_2w[RG_SIZE][RG_SIZE];
+#ifndef RANDOM_SELECTION
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
+#endif
                         {
                             for (unsigned short w_rg = 0; w_rg < RG_SIZE; ++w_rg)
                             {
@@ -1864,7 +1842,9 @@ static double estimation(float* params)
 #ifndef WAGE_SELECTION                  
                     else //t==0
                     {
+#ifndef RANDOM_SELECTION
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
+#endif
                         {
                             choices[rg] = choose_ue[rg] - moving_cost[type];
                             choices[rg+7] = ue_2b[rg] - moving_cost[type];
@@ -1887,7 +1867,9 @@ static double estimation(float* params)
                 {
                     if (from_state == BLUE)
                     {
+#ifndef RANDOM_SELECTION
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
+#endif
                         {
                             choices[rg] = choose_ue[rg] - moving_cost[type];
                             choices[rg+7] = work_2b[rg] - moving_cost[type];
@@ -1897,7 +1879,9 @@ static double estimation(float* params)
                             get_max_idx(max_utility, max_index, work_2b[rg] - moving_cost[type], rg+7);
                         }
                         float work_2w[RG_SIZE][RG_SIZE];
+#ifndef RANDOM_SELECTION
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
+#endif
                         {
                             for (unsigned short to_w_rg = 0; to_w_rg < RG_SIZE; ++to_w_rg)
                             {
@@ -1933,7 +1917,9 @@ static double estimation(float* params)
                     else   // from_state==WHITE
                     {
                         float nonfired_2w[RG_SIZE][RG_SIZE];
+#ifndef RANDOM_SELECTION
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
+#endif
                         {
                             choices[rg] = choose_ue[rg]- moving_cost[type];
                             choices[rg+7] = work_2b[rg]- moving_cost[type];
@@ -1943,7 +1929,9 @@ static double estimation(float* params)
                             get_max_idx(max_utility, max_index,  work_2b[rg] - moving_cost[type], rg+7);
                         }//end rg
                         float work_2w[RG_SIZE][RG_SIZE];
+#ifndef RANDOM_SELECTION
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
+#endif
                         {
                             for (unsigned short to_w_rg = 0; to_w_rg < RG_SIZE; ++to_w_rg)
                             {
@@ -1974,7 +1962,9 @@ static double estimation(float* params)
                             choices[from_h_rg+14+7*to_w_rg] = work_2w[from_h_rg][to_w_rg];
                             get_max_idx(max_utility, max_index, work_2w[from_h_rg][to_w_rg], from_h_rg+14+7*to_w_rg);
                         } // end to_w_rg
+#ifndef RANDOM_SELECTION
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
+#endif
                         {
                             // stayed in white in the same work region and move housing
                             // note: rg stands for the destination housing region, becasue there is no change in work region
@@ -1993,21 +1983,6 @@ static double estimation(float* params)
                     } //end if BLUE
                 } //end if UE
 
-#ifdef SANITY
-                if (sample(I,t) != -1)
-                {
-                    max_index = sample(I,t);
-                    max_utility = choices[max_index];
-                    for (unsigned short st = 0; st < STATE_VECTOR_SIZE; ++st)
-                    {
-                        if (st != max_index)
-                        {
-                            choices[st] = -INFINITY;
-                        }
-                    }
-                }
-                // if sample is unknown we keep the estimated value
-#endif 
                 unsigned short tmp_work_rg;
                 unsigned short tmp_house_rg;
 #ifdef WAGE_SELECTION
@@ -2044,7 +2019,14 @@ static double estimation(float* params)
                     printf("Invalid selection moved state from %hu to WHITE\n", from_state);
                 }
 #endif
-
+ 
+#ifdef RANDOM_SELECTION
+                if (rg != tmp_house_rg)
+                {
+                    printf( "rg = %d tmp_house_rg = %d\n", rg, tmp_house_rg);
+                    assert(0);
+                }
+#endif
 #ifdef FULL_TRACE_INDEX
                 printf("%hu ", max_index);
 #elif FULL_TRACE_WAGE
@@ -2097,44 +2079,6 @@ static double estimation(float* params)
                     }
                 }
 #endif
-
-#ifdef SANITY
-                if (sample(I,t) == -1)
-                {
-                    if (live(I,t) != -1)
-                    {
-                        tmp_house_rg = live(I,t);
-                    }
-                    else
-                    {
-                        // if no info is known house is the estimated one 
-                    }
-
-                    if (occupation(I,t) == UE)
-                    {
-                        tmp_work_rg = 0;
-                    }
-                    else if (occupation(I,t) == BLUE)
-                    {
-                        tmp_work_rg = 1;
-                    }
-                    else if (occupation(I,t) == WHITE)
-                    {
-                        if (work(I,t) != -1)
-                        {
-                            tmp_work_rg = (unsigned short)(work(I,t) + 2);
-                        }
-                        else
-                        {
-                            // if no info is known work region is the estimated one 
-                        }
-                    }
-                    else
-                    {
-                        // if no info is known occupation the estimated one 
-                    }
-                }
-#endif // SANITY
 
                 house_rg_arr[t][draw] = tmp_house_rg;
                 from_h_rg = tmp_house_rg;
@@ -2303,27 +2247,6 @@ static double estimation(float* params)
                         // one of the individuals that were treated in the special cases
                         // doing nothing in the last period
                     }
-#ifdef SANITY
-                    if (WAGE > 0.0f)
-                    {
-                        // if there is real data, override estimated one
-                        last_wage[draw] = WAGE;
-                    }
-                    else
-                    {
-                        last_wage[draw] = 0.0f;
-                    }
-                    if (D_MORT == 0 && RENT_MORT > 0)
-                    {
-                        // if there is real data, override estimated one
-                        last_rent[draw] = (float)RENT_MORT;
-                    }
-                    else
-                    {
-                        last_rent[draw] = 0.0f;
-                    }
-#endif // SANITY
-
                 }
                 else if ((t == 7 && I == 84) || (t == 6 && I == 214) || (t == 1 && I == 399) || (t == 3 && (I == 640 || I == 620)))
                 {
