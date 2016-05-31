@@ -1215,6 +1215,7 @@ static double estimation(float* params)
     }
     // no symmetry between tc[0][2] and tc[2][0]
     travel_cost_arr[2][0] = tc[5];
+   // travel_cost_arr[0][1] = 
 #endif
 
 #if (TRACE_LOAD || SIMULATION)
@@ -1895,7 +1896,11 @@ static double estimation(float* params)
 
             for (unsigned short t = 0; t < PERIODS; ++t)// loop over periods
             {
+#ifdef RANDOM_SELECTION
+                short rg = (unsigned short)((float)RG_SIZE*(rand()/(RAND_MAX + 1.0f)));
+#else
                 short rg = live(I,t);
+#endif
                 if (rg < 0)
                 {
 #ifdef FULL_TRACE_INDEX
@@ -2040,7 +2045,6 @@ static double estimation(float* params)
                 // fill white information
                 for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
                 {
-
                     const float taste_rent_husband = taste[rg] - rent[rg][type] + husband[rg];
                     for (unsigned short w_rg = 0; w_rg < RG_SIZE; ++w_rg)
                     {
@@ -2139,7 +2143,6 @@ static double estimation(float* params)
                             {
                                 tmp_moving_cost += moving_cost_0;
                             }
-                            //printf("%d from %hu to %hu %f\n", t, from_h_rg, rg, tmp_moving_cost); DEBUG
                         }
                         // move to ue
                         choices[rg] = choose_ue[rg]- tmp_moving_cost;
@@ -2240,6 +2243,11 @@ static double estimation(float* params)
                         // invalid state
                         assert(0);
                     }
+                    if ((max_index < 7 && current_wage > 0.0) || (max_index > 6 && current_wage == 0.0))
+                    {
+                        printf("Invalid Combination: I=%d draw=%d t=%d selection=%d\n", I, draw, t, max_index);
+                    }
+
                     printf("%.3f ",  current_wage);
                 }
 #elif FULL_TRACE_RENT

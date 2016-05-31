@@ -24,6 +24,8 @@ estimation_stdev  \
 estimation_test_full \
 estimation_test_fullwage \
 estimation_test_fullrent \
+estimation_test_full_random \
+estimation_test_fullwage_random \
 estimation_ref \
 estimation_edu
 
@@ -85,9 +87,13 @@ estimation_test_full: estimation.cpp
 	@echo Building $@...;
 	$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_INDEX -o $@ $<;
 
-estimation_test_fullwage: estimation.cpp
+estimation_test_full_random: estimation.cpp
 	@echo Building $@...;
-	$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_WAGE -o $@ $<;
+	$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_INDEX -DRANDOM_SELECTION -o $@ $<;
+
+estimation_test_fullwage_random: estimation.cpp
+	@echo Building $@...;
+	$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_WAGE -DRANDOM_SELECTION -o $@ $<;
 
 estimation_test_fullrent: estimation.cpp
 	@echo Building $@...;
