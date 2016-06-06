@@ -1689,6 +1689,19 @@ static double estimation(float* params)
 #ifdef RANDOM_SELECTION
                 const short rg = (unsigned short)((float)RG_SIZE*(rand()/(RAND_MAX + 1.0f)));
                 from_h_rg = rg;
+#elif REDUCED_SELECTION
+                const short rg = live(I,t);
+                if (rg < 0 || rg >= RG_SIZE)
+                {
+#ifdef FULL_TRACE_INDEX
+                    printf("%d ", 999);
+#elif FULL_TRACE_WAGE
+                    printf("%.3f ",  0.0);
+#endif
+                    continue;
+                }
+
+                from_h_rg = rg;
 #else
                 for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
 #endif
@@ -1800,7 +1813,7 @@ static double estimation(float* params)
                     if (t > 0)
 #endif
                     {
-#ifndef RANDOM_SELECTION
+#if !defined(RANDOM_SELECTION) && !defined(REDUCED_SELECTION)
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
 #endif
                         {
@@ -1812,7 +1825,7 @@ static double estimation(float* params)
                             get_max_idx(max_utility, max_index, ue_2b[rg] - moving_cost[type], rg+7);
                         }
                         float ue_2w[RG_SIZE][RG_SIZE];
-#ifndef RANDOM_SELECTION
+#if !defined(RANDOM_SELECTION) && !defined(REDUCED_SELECTION)
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
 #endif
                         {
@@ -1842,7 +1855,7 @@ static double estimation(float* params)
 #ifndef WAGE_SELECTION                  
                     else //t==0
                     {
-#ifndef RANDOM_SELECTION
+#if !defined(RANDOM_SELECTION) && !defined(REDUCED_SELECTION)
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
 #endif
                         {
@@ -1867,7 +1880,7 @@ static double estimation(float* params)
                 {
                     if (from_state == BLUE)
                     {
-#ifndef RANDOM_SELECTION
+#if !defined(RANDOM_SELECTION) && !defined(REDUCED_SELECTION)
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
 #endif
                         {
@@ -1879,7 +1892,7 @@ static double estimation(float* params)
                             get_max_idx(max_utility, max_index, work_2b[rg] - moving_cost[type], rg+7);
                         }
                         float work_2w[RG_SIZE][RG_SIZE];
-#ifndef RANDOM_SELECTION
+#if !defined(RANDOM_SELECTION) && !defined(REDUCED_SELECTION)
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
 #endif
                         {
@@ -1917,7 +1930,7 @@ static double estimation(float* params)
                     else   // from_state==WHITE
                     {
                         float nonfired_2w[RG_SIZE][RG_SIZE];
-#ifndef RANDOM_SELECTION
+#if !defined(RANDOM_SELECTION) && !defined(REDUCED_SELECTION)
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
 #endif
                         {
@@ -1929,7 +1942,7 @@ static double estimation(float* params)
                             get_max_idx(max_utility, max_index,  work_2b[rg] - moving_cost[type], rg+7);
                         }//end rg
                         float work_2w[RG_SIZE][RG_SIZE];
-#ifndef RANDOM_SELECTION
+#if !defined(RANDOM_SELECTION) && !defined(REDUCED_SELECTION)
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
 #endif
                         {
@@ -1962,7 +1975,7 @@ static double estimation(float* params)
                             choices[from_h_rg+14+7*to_w_rg] = work_2w[from_h_rg][to_w_rg];
                             get_max_idx(max_utility, max_index, work_2w[from_h_rg][to_w_rg], from_h_rg+14+7*to_w_rg);
                         } // end to_w_rg
-#ifndef RANDOM_SELECTION
+#if !defined(RANDOM_SELECTION) && !defined(REDUCED_SELECTION)
                         for (unsigned short rg = 0; rg < RG_SIZE; ++rg)
 #endif
                         {
@@ -2020,7 +2033,7 @@ static double estimation(float* params)
                 }
 #endif
  
-#ifdef RANDOM_SELECTION
+#if defined(RANDOM_SELECTION) || defined(REDUCED_SELECTION)
                 if (rg != tmp_house_rg)
                 {
                     printf( "rg = %d tmp_house_rg = %d\n", rg, tmp_house_rg);

@@ -19,6 +19,8 @@ estimation_test_fullwage \
 estimation_test_fullrent \
 estimation_test_full_random \
 estimation_test_fullwage_random \
+estimation_test_full_reduced \
+estimation_test_fullwage_reduced \
 estimation_test_m
 
 all: $(TARGETS)
@@ -90,6 +92,14 @@ estimation_test_full_random: estimation.cpp
 estimation_test_fullwage_random: estimation.cpp
 	@echo Building $@...;
 	$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_WAGE -DRANDOM_SELECTION -o $@ $<;
+
+estimation_test_full_reduced: estimation.cpp
+	@echo Building $@...;
+	$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_INDEX -DREDUCED_SELECTION -o $@ $<;
+
+estimation_test_fullwage_reduced: estimation.cpp
+	@echo Building $@...;
+	$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_WAGE -DREDUCED_SELECTION -o $@ $<;
 
 estimation_test_fullrent: estimation.cpp
 	@echo Building $@...;
