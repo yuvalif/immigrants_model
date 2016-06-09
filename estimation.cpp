@@ -1894,11 +1894,12 @@ static double estimation(float* params)
                     }
             }
 
+#ifdef RANDOM_SELECTION
+            short rg = (unsigned short)((float)RG_SIZE*(rand()/(RAND_MAX + 1.0f)));
+#endif
             for (unsigned short t = 0; t < PERIODS; ++t)// loop over periods
             {
-#ifdef RANDOM_SELECTION
-                short rg = (unsigned short)((float)RG_SIZE*(rand()/(RAND_MAX + 1.0f)));
-#else
+#ifndef RANDOM_SELECTION
                 short rg = live(I,t);
 #endif
                 if (rg < 0)
