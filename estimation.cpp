@@ -1651,6 +1651,9 @@ static double estimation(float* params)
                     }
             }
 
+#ifdef RANDOM_SELECTION
+            const short rg = (unsigned short)((float)RG_SIZE*(rand()/(RAND_MAX + 1.0f)));
+#endif
             for (unsigned short t = 0; t < PERIODS; ++t)// loop over periods
             {
                 short max_index = -1;
@@ -1687,7 +1690,6 @@ static double estimation(float* params)
                 unsigned short D_W_B[RG_SIZE];
 
 #ifdef RANDOM_SELECTION
-                const short rg = (unsigned short)((float)RG_SIZE*(rand()/(RAND_MAX + 1.0f)));
                 from_h_rg = rg;
 #elif REDUCED_SELECTION
                 const short rg = live(I,t);
