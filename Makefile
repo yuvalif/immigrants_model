@@ -22,7 +22,11 @@ estimation_test_fullwage_random \
 estimation_test_random \
 estimation_test_full_reduced \
 estimation_test_fullwage_reduced \
-estimation_test_m
+estimation_test_m \
+estimation_wife \
+estimation_wife_full \
+estimation_wife_fullwage \
+estimation_wife_fullrent
 
 all: $(TARGETS)
 
@@ -125,6 +129,18 @@ estimation_ref: estimation.cpp
 estimation_wife: estimation.cpp
 	@echo Building $@...;
 	@$(CC) $(CFLAGS) -DTRACE -DINFO -DWIFE_MODE -o $@ $<;
+
+estimation_wife_full: estimation.cpp
+	@echo Building $@...;
+	@$(CC) $(CFLAGS) -DTRACE -DINFO -DWIFE_MODE -DFULL_TRACE -DFULL_TRACE_INDEX -o $@ $<;
+
+estimation_wife_fullwage: estimation.cpp
+	@echo Building $@...;
+	@$(CC) $(CFLAGS) -DTRACE -DINFO -DWIFE_MODE -DFULL_TRACE -DFULL_TRACE_WAGE -o $@ $<;
+
+estimation_wife_fullrent: estimation.cpp
+	@echo Building $@...;
+	@$(CC) $(CFLAGS) -DTRACE -DINFO -DWIFE_MODE -DFULL_TRACE -DFULL_TRACE_RENT -o $@ $<;
 
 estimation_test_m: estimation.cpp
 	@echo Building $@...;
