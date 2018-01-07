@@ -11,9 +11,7 @@ CFLAGS=$(CWARNING_FLAGS) -O3
 endif
 
 TARGETS=estimation \
-estimation_debug \
 estimation_sim \
-estimation_sim_debug \
 estimation_test \
 estimation_sim_full \
 estimation_sim_fullrent \
@@ -27,7 +25,6 @@ estimation_test_full \
 estimation_test_fullwage \
 estimation_wage_selection \
 estimation_fullwage_selection \
-estimation_ref \
 estimation_wife \
 estimation_test_m
 
@@ -37,17 +34,9 @@ estimation: estimation.cpp
 	@echo Building $@...;
 	@$(CC) $(CFLAGS) -DINFO -o $@ $<;
 
-estimation_debug: estimation.cpp
-	@echo Building $@...;
-	@$(CC) $(CWARNING_FLAGS) -DTRACE_LOAD -DTRACE -DINFO -Wall -g -O0 -o $@ $<;
-
 estimation_sim: estimation.cpp
 	@echo Building $@...;
 	@$(CC) $(CFLAGS) -DSIMULATION -DTRACE -DINFO -o $@ $<;
-
-estimation_sim_debug: estimation.cpp
-	@echo Building $@...;
-	@$(CC) $(CWARNING_FLAGS) -DSIMULATION -DTRACE -DINFO -Wall -g -O0 -o $@ $<;
 
 estimation_sim_full: estimation.cpp
 	@echo Building $@...;
@@ -95,15 +84,11 @@ estimation_test_fullwage: estimation.cpp
 
 estimation_wage_selection: estimation.cpp
 	@echo Building $@...;
-	@$(CC) $(CFLAGS) -DTRACE -DINFO -DWAGE_SELECTION -o $@ $<;
+	@$(CC) $(CFLAGS) -Wno-unused-variable -Wno-unused-but-set-variable -Wno-maybe-uninitialized -DTRACE -DINFO -DWAGE_SELECTION -o $@ $<;
 
 estimation_fullwage_selection: estimation.cpp
 	@echo Building $@...;
-	@$(CC) $(CFLAGS) -DTRACE -DINFO -DWAGE_SELECTION -DFULL_TRACE -DFULL_TRACE_WAGE -o $@ $<;
-
-estimation_ref: estimation.cpp
-	@echo Building $@...;
-	@$(CC) $(CFLAGS) -DTRACE -DINFO -DREF_PARAM -o $@ $<;
+	@$(CC) $(CFLAGS) -Wno-unused-variable -Wno-unused-but-set-variable -Wno-maybe-uninitialized -DTRACE -DINFO -DWAGE_SELECTION -DFULL_TRACE -DFULL_TRACE_WAGE -o $@ $<;
 
 estimation_wife: estimation.cpp
 	@echo Building $@...;
