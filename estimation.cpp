@@ -1068,6 +1068,7 @@ static double estimation(float* params)
 
     // string likelihood per individual    
     double like_arr[OBS];
+    double like_housing_arr[OBS];
 #ifdef SIMULATION
     double total_max_utility[T];
     memset(total_max_utility, '\0', sizeof(total_max_utility));
@@ -1540,6 +1541,7 @@ static double estimation(float* params)
 #endif
 
         float p_bar_arr[STATE_VECTOR_SIZE][T];
+        float p_bar_arr_housing[STATE_VECTOR_SIZE][T];
         short work_rg_arr[T][DRAWS_F];
         short house_rg_arr[T][DRAWS_F];
 #ifndef SIMULATION
@@ -1549,6 +1551,7 @@ static double estimation(float* params)
         float last_wage[DRAWS_F];
         float last_rent[DRAWS_F];
         memset(p_bar_arr, '\0', sizeof(p_bar_arr));
+        memset(p_bar_arr_housing, '\0', sizeof(p_bar_arr_housing));
         unsigned short I_id;
 #ifdef TRACE
         unsigned short I_type;
@@ -2262,6 +2265,7 @@ static double estimation(float* params)
                 }
 
                 {
+                    // caluclate deviation of utility in choice vector 
                     double dvsum = 0.0;
                     double dvtau[STATE_VECTOR_SIZE];
 
@@ -2292,6 +2296,90 @@ static double estimation(float* params)
                     }
                 }
 
+                {
+
+                    // caluclate deviation of utility in choice vector when only housing is not fixed 
+                    
+                    // modify choices to be fixed on all but hoising
+                    // note: ok to change the choices vector here, as it is not used until next iteration
+                    if (occupation(I,t) == UE)
+                    {
+                        // in case of unemployment, all other work statuses are set to -INFINITY
+                        for (unsigned short st = 7; st < STATE_VECTOR_SIZE; ++st)
+                        {
+                            choices[st] = -INFINITY;
+                        }
+                    }
+                    else if (occupation(I,t) == BLUE)
+                    {
+                        // in case of blue, all other work statuses are set to -INFINITY
+                        /*for (unsigned short st = 0; st < 7; ++st)
+                        {
+                            choices[st] = -INFINITY;
+                        }
+                        for (unsigned short st = 14; st < STATE_VECTOR_SIZE; ++st)
+                        {
+                            choices[st] = -INFINITY;
+                        }*/
+                    }
+                    else if (occupation(I,t) == WHITE)
+                    {
+                        // in case of white, all other work statuses are set to -INFINITY
+                        /*for (unsigned short st = 0; st < 14; ++st)
+                        {
+                            choices[st] = -INFINITY;
+                        }
+                        if (work(I,t) != -1)
+                        {
+                            // if work region is known we mask all impossible options
+                            const unsigned adjusted_work_rg = work(I,t) + 2; // plus 2 to adjust to status index
+                            for (unsigned short st = 14; st < STATE_VECTOR_SIZE; ++st)
+                            {
+                                if (st/7 != adjusted_work_rg)
+                                {
+                                    choices[st] = -INFINITY;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // work region is unknown we allow all white options
+                        }*/
+                    }
+                    else
+                    {
+                        // unknow occupation, all options remain
+                    }
+                    
+                    double dvsum = 0.0;
+                    double dvtau[STATE_VECTOR_SIZE];
+
+                    for (unsigned short st = 0; st < STATE_VECTOR_SIZE; ++st)
+                    {
+                        if (choices[st] > -INFINITY)
+                        {
+                            const double dv = choices[st] - max_utility;
+                            dvtau[st] = exp(dv/(float)TAU);
+                            dvsum += dvtau[st];
+                        }
+                        else
+                        {
+                            dvtau[st] = 0.0f;
+                        }
+                    }
+                
+                    for (unsigned short st = 0; st < STATE_VECTOR_SIZE; ++st)
+                    {
+                        if (choices[st] > -INFINITY)
+                        {
+                            p_bar_arr_housing[st][t] += (float)(dvtau[st]/dvsum);
+                        }
+                        if (draw == draws_f-1)
+                        {
+                            p_bar_arr_housing[st][t] = p_bar_arr_housing[st][t]/(float)draws_f;
+                        }
+                    }
+                }
 #ifdef SIMULATION
                 total_max_utility[t] += max_utility;
                 ++total_max_utility_count[t];
@@ -2305,32 +2393,39 @@ static double estimation(float* params)
 
 #ifndef SIMULATION
         like_arr[I] = 0.0;
+        like_housing_arr[I] = 0.0;
     
         for (unsigned short draw=0; draw < draws_f; ++draw)
         {
+
             float p_error[T];
+            float p_error_housing[T];
             for (unsigned short t = 0; t < PERIODS ; ++t)// loop over periods
             {
                 if (max_index_arr[t][draw] == sample(I,t))
                 {
                     // model estimation was correct
                     p_error[t] = error_c + (1.0f - error_c)*p_bar_arr[sample(I,t)][t];
+                    p_error_housing[t] = error_c + (1.0f - error_c)*p_bar_arr_housing[sample(I,t)][t];
                     ++counter_true;
                 }
                 else if (sample(I,t) > -1)
                 {
                     // model estimation was incorrect
                     p_error[t] = (1.0f - error_c)*p_bar_arr[sample(I,t)][t];    
+                    p_error_housing[t] = (1.0f - error_c)*p_bar_arr_housing[sample(I,t)][t];    
                     ++counter_false;
                 }
                 else
                 {
                     // missing real information
                     p_error[t] = 0.0f;
+                    p_error_housing[t] = 0.0f;
+                    // TODO: do we need to handle all the missing cases for error_housing ?
 
                     if (occupation(I,t) == WHITE)
                     {
-                        //work in WHITE
+                        // work in WHITE with unknowns
                         if (live(I,t) == -1)
                         {
                             // unknown where he live
@@ -2342,10 +2437,12 @@ static double estimation(float* params)
                                     if (max_index_arr[t][draw] == 14+rg)
                                     {
                                         p_error[t] += error_c+(1.0f - error_c)*p_bar_arr[14+rg][t];
+                                        p_error_housing[t] += error_c+(1.0f - error_c)*p_bar_arr_housing[14+rg][t];
                                     }
                                     else
                                     {
                                         p_error[t] += (1.0f - error_c)*p_bar_arr[14+rg][t];
+                                        p_error_housing[t] += (1.0f - error_c)*p_bar_arr_housing[14+rg][t];
                                     }
                                 }
                             }
@@ -2357,10 +2454,12 @@ static double estimation(float* params)
                                     if (max_index_arr[t][draw] == 28+rg)
                                     {
                                         p_error[t] += error_c+(1.0f - error_c)*p_bar_arr[28+rg][t];
+                                        p_error_housing[t] += error_c+(1.0f - error_c)*p_bar_arr_housing[28+rg][t];
                                     }
                                     else
                                     {
                                         p_error[t] += (1.0f - error_c)*p_bar_arr[28+rg][t];
+                                        p_error_housing[t] += (1.0f - error_c)*p_bar_arr_housing[28+rg][t];
                                     }
                                 }
                             }
@@ -2372,10 +2471,12 @@ static double estimation(float* params)
                                     if (max_index_arr[t][draw] == 42+rg)
                                     {
                                         p_error[t] += error_c+(1.0f - error_c)*p_bar_arr[42+rg][t];
+                                        p_error_housing[t] += error_c+(1.0f - error_c)*p_bar_arr_housing[42+rg][t];
                                     }
                                     else
                                     {
                                         p_error[t] += (1.0f - error_c)*p_bar_arr[42+rg][t];
+                                        p_error_housing[t] += (1.0f - error_c)*p_bar_arr_housing[42+rg][t];
                                     }
                                 }
                             }
@@ -2387,10 +2488,12 @@ static double estimation(float* params)
                                     if (max_index_arr[t][draw] == 56+rg)
                                     {
                                         p_error[t] += error_c+(1.0f - error_c)*p_bar_arr[56+rg][t];
+                                        p_error_housing[t] += error_c+(1.0f - error_c)*p_bar_arr_housing[56+rg][t];
                                     }
                                     else
                                     {
                                         p_error[t] += (1.0f - error_c)*p_bar_arr[56+rg][t];
+                                        p_error_housing[t] += (1.0f - error_c)*p_bar_arr_housing[56+rg][t];
                                     }
                                 }
                             }
@@ -2404,10 +2507,12 @@ static double estimation(float* params)
                                         if (max_index_arr[t][draw] == 14+h_rg+7*w_rg)
                                         {
                                             p_error[t] += error_c + (1.0f - error_c)*p_bar_arr[14+h_rg+7*w_rg][t];
+                                            p_error_housing[t] += error_c + (1.0f - error_c)*p_bar_arr_housing[14+h_rg+7*w_rg][t];
                                         }
                                         else
                                         {
                                             p_error[t] += (1.0f - error_c)*p_bar_arr[14+h_rg+7*w_rg][t];
+                                            p_error_housing[t] += (1.0f - error_c)*p_bar_arr_housing[14+h_rg+7*w_rg][t];
                                         }
                                     }
                                 }
@@ -2425,10 +2530,12 @@ static double estimation(float* params)
                                 if (job_arr[t][draw] == WHITE && work_rg_arr[t][draw] == rg && live(I,t) == house_rg_arr[t][draw])
                                 {
                                     p_error[t] += error_c+(1.0f - error_c)*p_bar_arr[live(I,t) + 7*rg][t];
+                                    p_error_housing[t] += error_c+(1.0f - error_c)*p_bar_arr_housing[live(I,t) + 7*rg][t];
                                 }
                                 else
                                 {
                                     p_error[t] += (1.0f - error_c)*p_bar_arr[live(I,t)+7*rg][t];
+                                    p_error_housing[t] += (1.0f - error_c)*p_bar_arr_housing[live(I,t)+7*rg][t];
                                 }
                             }
                         }
@@ -2440,7 +2547,7 @@ static double estimation(float* params)
                     }
                     else if (occupation(I,t) == UE)
                     {
-                        // unemployed
+                        // unemployed with unknowns
                         if (live(I,t) == -1)
                         {
                             // region of housing is unknown
@@ -2449,10 +2556,12 @@ static double estimation(float* params)
                                 if (max_index_arr[t][draw] == rg)
                                 {
                                     p_error[t] += error_c + (1.0f - error_c)*p_bar_arr[rg][t];
+                                    p_error_housing[t] += error_c + (1.0f - error_c)*p_bar_arr_housing[rg][t];
                                 }
                                 else
                                 {
                                     p_error[t] += (1.0f - error_c)*p_bar_arr[rg][t];
+                                    p_error_housing[t] += (1.0f - error_c)*p_bar_arr_housing[rg][t];
                                 }
                             }
                         }
@@ -2464,7 +2573,7 @@ static double estimation(float* params)
                     }
                     else if (occupation(I,t) == BLUE)
                     {
-                        // work in blue
+                        // work in blue with unknowns
                         if (live(I,t) == -1)
                         {
                             //region of housing is unknown
@@ -2473,10 +2582,12 @@ static double estimation(float* params)
                                 if (max_index_arr[t][draw] == 7+rg)
                                 {
                                     p_error[t] += error_c + (1.0f - error_c)*p_bar_arr[7+rg][t];
+                                    p_error_housing[t] += error_c + (1.0f - error_c)*p_bar_arr_housing[7+rg][t];
                                 }
                                 else
                                 {
                                     p_error[t] += (1.0f - error_c)*p_bar_arr[7+rg][t];
+                                    p_error_housing[t] += (1.0f - error_c)*p_bar_arr_housing[7+rg][t];
                                 }
                             }
                         }
@@ -2522,16 +2633,23 @@ static double estimation(float* params)
             }
 
             double like = 1.0;
+            double like_housing = 1.0;
             for (unsigned short t = 0; t < PERIODS; ++t)
             {
                 like *= p_error[t];
+                like_housing *= p_error_housing[t];
             }
             
             like *= wage_density*rent_density;
+            like_housing *= wage_density*rent_density;
             like_arr[I] += like;
+            like_housing_arr[I] += like_housing;
 
         } // close draws
+
+        // average likelihood
         like_arr[I] = like_arr[I]/(double)draws_f;
+        like_housing_arr[I] = like_housing_arr[I]/(double)draws_f;
 
 #ifdef PERF_TRACE
         printf("calculating forward for I = %d took: %f seconds (estimated total = %f minutes)\n", I, toc(tv), toc(tv)*OBS/60.0);
@@ -2545,22 +2663,50 @@ static double estimation(float* params)
     printf("counter true: %lu counter false: %lu correct: %f%%\n", counter_true, counter_false, 100.0f*(float)counter_true/(float)(counter_true+counter_false));
 #endif
     double likelihood = 0.0;
+    double married_likelihood = 0.0;
+    double unmarried_likelihood = 0.0;
+    unsigned married_count = 0;
+    unsigned unmarried_count = 0;
     for (unsigned short I = 0; I < OBSR; ++I)
     {
-        double prob = PROB_T0*like_arr[I] + PROB_T2*like_arr[I+OBSR] + PROB_T1*like_arr[I+OBSR*2];
+        const double prob = PROB_T0*like_arr[I] + PROB_T2*like_arr[I+OBSR] + PROB_T1*like_arr[I+OBSR*2];
+        const double prob_housing = PROB_T0*like_housing_arr[I] + PROB_T2*like_housing_arr[I+OBSR] + PROB_T1*like_housing_arr[I+OBSR*2];
         double log_prob;
+        double log_prob_housing;
         if (prob < 1e-300)
         {
 #ifdef INFO
-            printf("-inf value was calculated for I=%hu\n******************************************************\n", I);
+            printf("-inf probability value was calculated for I=%hu\n******************************************************\n", I);
 #endif
             log_prob = -110.0;
         }
         else
         {
-            log_prob= log(prob);
+            log_prob = log(prob);
+        }
+        if (prob_housing < 1e-300)
+        {
+#ifdef INFO
+            printf("-inf probability (housing only) value was calculated for I=%hu\n******************************************************\n", I);
+#endif
+            log_prob_housing = -110.0;
+        }
+        else
+        {
+            log_prob_housing = log(prob_housing);
         }
         likelihood += log_prob;
+        if (M_arr[I])
+        {
+            married_likelihood += log_prob_housing;
+            ++married_count;
+        }
+        else
+        {
+            unmarried_likelihood += log_prob_housing;
+            ++unmarried_count;
+        }
+
 #ifdef CALC_STDEV
         fprintf(fp, "%f ", log_prob);
 #endif
@@ -2572,7 +2718,10 @@ static double estimation(float* params)
 #endif
 
 #ifdef INFO 
-    printf("likelihood = %f\n",likelihood);//should maximize objective function
+    printf("likelihood = %f\n", likelihood); //should maximize objective function
+    printf("likelihood (housing only) = %f\n", married_likelihood + unmarried_likelihood);
+    printf("married likelihood (housing only) = %f with %u samples\n", married_likelihood, married_count);
+    printf("unmarried likelihood (housing only) = %f with %u sample\n ", unmarried_likelihood, unmarried_count);
     fflush(stdout);
 #endif
 

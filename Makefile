@@ -1,5 +1,5 @@
 # the compiler to use
-CC=$(shell which icpc)
+CC=$(shell which icpc 2> /dev/null)
 ifneq ($(CC),)
 CC=icpc
 CWARNING_FLAGS=-Wall -wd981 -wd193 -wd2259 -wd1572
