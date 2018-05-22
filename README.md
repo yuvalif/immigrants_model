@@ -29,5 +29,3 @@ Run policy simulation based on a set of inputs, as well as the type and paramete
 Note that simulation of type 4 (lump sum) has its own executable: estimation_sim4
 
 Other executables are used as utility programs mainly to log all internal state transitions of the model, for debugging purposes.
-
-The two aother branches of the code: "women" and "reduced_women" are two recent variants of the model, where the behavior of the women is modeled.
