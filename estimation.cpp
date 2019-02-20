@@ -2667,6 +2667,7 @@ static double estimation(float* params)
     double unmarried_likelihood = 0.0;
     unsigned married_count = 0;
     unsigned unmarried_count = 0;
+    printf("ID\tMarried\tLikelihood\n");
     for (unsigned short I = 0; I < OBSR; ++I)
     {
         const double prob = PROB_T0*like_arr[I] + PROB_T2*like_arr[I+OBSR] + PROB_T1*like_arr[I+OBSR*2];
@@ -2707,6 +2708,7 @@ static double estimation(float* params)
             ++unmarried_count;
         }
 
+        printf("%u\t%d\t%f\n", I, M_arr[I], log_prob);
 #ifdef CALC_STDEV
         fprintf(fp, "%f ", log_prob);
 #endif
