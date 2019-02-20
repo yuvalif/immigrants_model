@@ -2828,6 +2828,7 @@ static double estimation(float* params)
     printf("counter true: %lu counter false: %lu correct: %f%%\n", counter_true, counter_false, 100.0f*(float)counter_true/(float)(counter_true+counter_false));
 #endif
     double likelihood = 0.0;
+    printf("ID\tMarried\tLikelihood\n");
     for (unsigned short I = 0; I < OBSR; ++I)
     {
         const double prob = like_arr[I];
@@ -2844,6 +2845,7 @@ static double estimation(float* params)
             log_prob = log(prob);
         }
         likelihood += log_prob;
+        printf("%u\t%d\t%f\n", I, M_arr[I], log_prob);
 #ifdef CALC_STDEV
         fprintf(fp, "%f ", log_prob);
 #endif
