@@ -1,5 +1,5 @@
 # the compiler to use
-CC=$(shell which icpc)
+CC=$(shell which icpc 2> /dev/null)
 ifneq ($(CC),)
 CC=icpc
 CWARNING_FLAGS=-Wall #-wd981 -wd193 -wd2259 -wd1572
@@ -21,6 +21,7 @@ estimation_test_full_random \
 estimation_test_fullwage_random \
 estimation_test_random \
 estimation_test_full_reduced \
+estimation_test_reduced \
 estimation_test_fullwage_reduced \
 estimation_test_m \
 estimation_wife \
@@ -92,23 +93,27 @@ estimation_test_fullwage: estimation.cpp
 
 estimation_test_full_random: estimation.cpp
 	@echo Building $@...;
-	$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_INDEX -DRANDOM_SELECTION -o $@ $<;
+	@$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_INDEX -DRANDOM_SELECTION -o $@ $<;
 
 estimation_test_fullwage_random: estimation.cpp
 	@echo Building $@...;
-	$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_WAGE -DRANDOM_SELECTION -o $@ $<;
+	@$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_WAGE -DRANDOM_SELECTION -o $@ $<;
 
 estimation_test_random: estimation.cpp
 	@echo Building $@...;
-	$(CC) $(CFLAGS) -DTRACE -DINFO -DRANDOM_SELECTION -o $@ $<;
+	@$(CC) $(CFLAGS) -DTRACE -DINFO -DRANDOM_SELECTION -o $@ $<;
 
 estimation_test_full_reduced: estimation.cpp
 	@echo Building $@...;
-	$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_INDEX -DREDUCED_SELECTION -o $@ $<;
+	@$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_INDEX -DREDUCED_SELECTION -o $@ $<;
+
+estimation_test_reduced: estimation.cpp
+	@echo Building $@...;
+	@$(CC) $(CFLAGS) -DTRACE -DINFO -DREDUCED_SELECTION -o $@ $<;
 
 estimation_test_fullwage_reduced: estimation.cpp
 	@echo Building $@...;
-	$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_WAGE -DREDUCED_SELECTION -o $@ $<;
+	@$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_WAGE -DREDUCED_SELECTION -o $@ $<;
 
 estimation_test_fullrent: estimation.cpp
 	@echo Building $@...;

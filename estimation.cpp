@@ -1692,8 +1692,8 @@ static double estimation(float* params)
 #ifdef RANDOM_SELECTION
                 from_h_rg = rg;
 #elif REDUCED_SELECTION
-                const short rg = live(I,t);
-                if (rg < 0 || rg >= RG_SIZE)
+                const int rg = live(I,t);
+                if (rg < 0 || rg >= (int)RG_SIZE)
                 {
 #ifdef FULL_TRACE_INDEX
                     printf("%d ", 999);
@@ -2580,6 +2580,7 @@ static double estimation(float* params)
             log_prob= log(prob);
         }
         likelihood += log_prob;
+        printf("%u\t%d\t%f\n", I, M_arr[I], log_prob);
 #ifdef CALC_STDEV
         fprintf(fp, "%f ", log_prob);
 #endif
