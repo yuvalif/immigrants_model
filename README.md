@@ -1,6 +1,3 @@
-Source code used for estimation done in the economic paper: ***"Residential Location, Work Location, and Labor Market Outcomes of Immigrants in Israel".***
-For more details on the paper see here: http://onlinelibrary.wiley.com/doi/10.3982/ECTA10029/abstract
-
 To compile just run "make" after cloning. Several executables will be generated:
 
 `./estimation <input filename> <output filename>`
