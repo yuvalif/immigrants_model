@@ -3090,7 +3090,7 @@ static double estimation(float* params)
         float sum_wage = 0.0f;
         for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
         {
-            if (wage_blue_rg_count[ty][rg] > 0)
+            if (wage_blue_rg_count[ty][rg][FULL] > 0)
             {
                 printf("%.4f\t", wage_blue_rg_sum[ty][rg][FULL]/(float)wage_blue_rg_count[ty][rg][FULL]);
                 sum_count += wage_blue_rg_count[ty][rg][FULL];
@@ -3173,7 +3173,7 @@ static double estimation(float* params)
         float sum_wage = 0.0f;
         for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
         {
-            if (wage_blue_rg_count[ty][rg] > 0)
+            if (wage_blue_rg_count[ty][rg][PART] > 0)
             {
                 printf("--------\t");
                 sum_count += wage_blue_rg_count[ty][rg][PART];
