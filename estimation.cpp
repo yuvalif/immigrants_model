@@ -72,7 +72,7 @@ inline float randn01()
 // program constant
 const unsigned int TYPE_SIZE    = 3;                // # of types
 const unsigned short T          = 20;               // time
-const unsigned int OBSR         = 529;              // individual 
+const unsigned int OBSR         = 412;              // individual 
 //const unsigned int OBS          = OBSR*TYPE_SIZE;   // individual multiplay by number of types
 const unsigned int DRAWS        = 30;               // draws for emax
 const unsigned int RG_SIZE      = 7;                // # of regions
@@ -619,7 +619,7 @@ static bool load_moments(const char* filename)
                             // if status is known occupation and house region must be known
                             if (occupation(I,t) == -1 || live(I,t) == -1)
                             {
-                                printf("line[%hu]: occupation or housing region data missing for period = %hu", I, t);
+                                printf("line[%hu]: occupation or housing region data missing for period = %hu\n", I, t);
                                 inconsistent = true;
                             }
                             
@@ -632,34 +632,34 @@ static bool load_moments(const char* filename)
                             // (work region - 3) = white work region
                             if (live(I,t) != -1 && live(I,t) != house_rg)
                             {
-                                printf("line[%hu]: housing region inconsistent for period = %hu, %d != %hu\n", I, t, house_rg, live(I,t));
+                                printf("line[%hu]: housing region inconsistent for period = %hu, %d != %d\n", I, t, house_rg, live(I,t));
                                 inconsistent = true;
                             }
                             if (occupation(I,t) != -1 && ((work_rg == 0 && occupation(I,t) != UE) ||
                                 ((work_rg == 1 || work_rg == 2) && occupation(I,t) != BLUE) ||
                                 (work_rg > 2 && occupation(I,t) != WHITE)))
                             {
-                                printf("line[%hu]: occupation inconsistent for period = %hu, %hu != %hu\n", I, t,
+                                printf("line[%hu]: occupation inconsistent for period = %hu, %hu != %d\n", I, t,
                                         (work_rg == 0 ? UE : (work_rg == 1 ? BLUE : WHITE)), occupation(I,t));
                                 inconsistent = true;
                             }
                             if (work(I,t) != -1 && work_rg > 2 && (work_rg - 3) != work(I,t))
                             {
-                                printf("line[%hu]: work region inconsistent for period = %hu, %d != %hu\n", I, t, work_rg - 3, work(I,t));
+                                printf("line[%hu]: work region inconsistent for period = %hu, %d != %d\n", I, t, work_rg - 3, work(I,t));
                                 inconsistent = true;
                             }
                             if (inconsistent)
                             {
-                                printf("Occupation: %hu Computed Occupation: %d\n", occupation(I,t), (work_rg == 0 ? UE : (work_rg == 1 || work_rg == 2 ? BLUE : WHITE)));
-                                printf("Housing Region: %hu Computed Housing Region: %d\n", live(I,t), house_rg);
+                                printf("Occupation: %d Computed Occupation: %d\n", occupation(I,t), (work_rg == 0 ? UE : (work_rg == 1 || work_rg == 2 ? BLUE : WHITE)));
+                                printf("Housing Region: %d Computed Housing Region: %d\n", live(I,t), house_rg);
                                 printf("Work Region: %d Computed Work Region: %d\n", work(I,t), (work_rg > 2) ? work_rg - 3 : -1);
                             }
                         }
 
                         if (inconsistent)
                         {
-                            printf("Occupation: %hu\n", occupation(I,t));
-                            printf("Housing Region: %hu\n", live(I,t));
+                            printf("Occupation: %d\n", occupation(I,t));
+                            printf("Housing Region: %d\n", live(I,t));
                             printf("Work Region: %d\n", work(I,t));
                         }
                     }
