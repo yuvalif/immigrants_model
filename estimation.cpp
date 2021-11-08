@@ -1996,8 +1996,8 @@ static double estimation(float* params)
                         D_W_W[rg] = get_discrete_index(tmpdw);
                         wage_w_non_f[w_rg] = 6.0f*expf(rg_const_tmp_w + beta20[w_rg] + sgma[0]*(tmp1+row_w*P_W_ERROR[dwage_w]))*WAGE_REF_PARAM;
                         wage_w[w_rg] = 6.0f*expf(rg_const_tmp_w + beta20[w_rg] + sgma[0]*tmp1)*WAGE_REF_PARAM;
-                        wage_ue_2w[rg] = draw_wage(wage_w[w_rg], prob_ue_2w);                           //equal wage if i come fron ue and got an offer and -inf if didn't
-                        wage_work_2w[rg] = draw_wage(wage_w[w_rg], prob_work_2w);                       //equal wage if ind come from and got an offer and -inf if didn't
+                        wage_ue_2w[w_rg] = draw_wage(wage_w[w_rg], prob_ue_2w);                           //equal wage if i come fron ue and got an offer and -inf if didn't
+                        wage_work_2w[w_rg] = draw_wage(wage_w[w_rg], prob_work_2w);                       //equal wage if ind come from and got an offer and -inf if didn't
                     }
                     const float tmp2 = epsilon_f(draw,I,t,rg,BLUE,type);
                     wage_b_non_f[rg] = 6.0f*expf(rg_const_tmp_b + beta30[rg] + sgma[1]*(tmp2+row_b*P_W_ERROR[dwage_b]))*WAGE_REF_PARAM;
@@ -2054,8 +2054,10 @@ static double estimation(float* params)
                         ue_2w[rg][w_rg] = wage_ue_2w[w_rg] + taste_rent_husband - travel_cost(rg,w_rg) + choose_w_emax;
                         work_2w[rg][w_rg] = wage_work_2w[w_rg] + taste_rent_husband - travel_cost(rg,w_rg) + choose_w_emax; 
                         nonfired_2w[rg][w_rg] = wage_nonfired_2w[rg] + taste_rent_husband + choose_w_emax_non_f;
+                    
                     }
                 }
+
 
                 //////////////////////////////////// start maximization ////////////////////////////////////
                 float choices[STATE_VECTOR_SIZE];
@@ -2102,7 +2104,7 @@ static double estimation(float* params)
                         }
                         // move to ue
                         choices[rg] = choose_ue[rg] - tmp_moving_cost;
-						// stay in blue accoreding to full/part
+						            // stay in blue accoreding to full/part
                         if (from_h_rg != rg)
                         {
                             // move regions
@@ -3243,139 +3245,6 @@ static double estimation(float* params)
         }
     }
 
-    ////////////////////// Last Rent //////////////////////
-    printf("\n\naverage rent in last period:\n\n");
-    printf("------------------------------------------------------------------------------------------------------------------------------------\n");
-    printf(" ty |      1       |       2       |       3       |       4       |       5       |       6       |       7       |    average    |\n");
-    printf("------------------------------------------------------------------------------------------------------------------------------------\n");
-    for (unsigned short ty = 0; ty < TYPE_SIZE; ++ty)
-    {
-        printf("%hu\t", ty);
-        unsigned long sum_count = 0;
-        float sum_rent = 0.0;
-        for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
-        {
-            if (rent_rg_count[ty][rg] > 0)
-            {
-                printf("%.4f\t", rent_rg_sum[ty][rg]/(float)rent_rg_count[ty][rg]);
-                sum_count += rent_rg_count[ty][rg];
-                sum_rent += rent_rg_sum[ty][rg];
-            }
-            else
-            {
-                printf("---------\t");
-            }
-        }
-        if (sum_count > 0)
-        {
-            printf("%.4f\n", sum_rent/(float)sum_count);
-        }
-        else
-        {
-            printf("--------\n");
-        }
-    }
-
-    // average across types per region
-    printf("------------------------------------------------------------------------------------------------------------------------------------\n");
-    printf("avg\t");
-    for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
-    {
-        printf("%.3f\t", rent_rg_notype_sum[rg]/(float)rent_rg_notype_count[rg]);
-    }
-
-    // average across all regions
-    printf("%.3f\t", rent_notype_sum/(float)rent_notype_count);
-
-    // real values
-    printf("\n------------------------------------------------------------------------------------------------------------------------------------\n");
-    memset(rent_rg_sum, '\0', sizeof(rent_rg_sum));
-    memset(rent_rg_count, '\0', sizeof(rent_rg_count));
-    for (unsigned short I = 0; I < OBSR; ++I)
-    {
-        short rg = live(I, PERIODS_arr[I]-1);
-        if (rg > -1 && D_MORT_arr[I] == 0 && RENT_MORT_arr[I] > 0)
-        {
-            rent_rg_sum[0][rg] += (float)RENT_MORT_arr[I];
-            ++rent_rg_count[0][rg];
-        }
-    }
-    {
-        printf("real\t");
-        unsigned long sum_count = 0;
-        float sum_rent = 0.0;
-        for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
-        {
-            if (rent_rg_count[0][rg] > 0)
-            {
-                printf("%.4f\t", rent_rg_sum[0][rg]/(float)rent_rg_count[0][rg]);
-                sum_count += rent_rg_count[0][rg];
-                sum_rent += rent_rg_sum[0][rg];
-            }
-            else
-            {
-                printf("--------\t");
-            }
-        }
-        if (sum_count > 0)
-        {
-            printf("%.4f\n", sum_rent/(float)sum_count);
-        }
-        else
-        {
-            printf("--------\n");
-        }
-    }
-
-    ////////////////////// House Region Distribution //////////////////////
-    printf("\n\nhousing region distribution (all types):\n\n");
-    printf("-----------------------------------------------------------------------------------------------------------------------------\n");
-    printf(" T |   count    |      1       |      2        |      3        |       4        |      5       |       6      |      7      |\n");
-    printf("-----------------------------------------------------------------------------------------------------------------------------\n");
-
-    for (unsigned short t = 0; t < max_T; ++t)
-    {
-        printf("%hu\t%lu\t", t, house_notype_distribution_count[t]);
-        for (unsigned rg = 0; rg < RG_SIZE; ++rg)
-        {
-            printf("%f\t", (float)house_notype_distribution[rg][t]/(float)house_notype_distribution_count[t]);
-        }
-        printf("\n");
-    }
-
-    printf("\n------------------------------------------------------------------------------------------------------------------------------------\n");
-    memset(house_distribution_count, '\0', sizeof(house_distribution_count));
-    memset(house_distribution, '\0', sizeof(house_distribution));
-    for (unsigned short I = 0; I < OBSR; ++I)
-    {
-        //unsigned short last_t = PERIODS_arr[I];
-        for (unsigned short t = 0; t < MOMENTS_PERIODS ; ++t)
-        {
-            if (live(I,t) > -1)
-            {
-                ++house_distribution_count[0][t];
-                ++house_distribution[0][live(I,t)][t];
-            }
-        }
-    }
-
-    for (unsigned short t = 0; t < MOMENTS_PERIODS ; ++t)
-    {
-        printf("%hu\t%lu\t", t, house_distribution_count[0][t]);
-        for (unsigned rg = 0; rg < RG_SIZE; ++rg)
-        {
-            if (house_distribution_count[0][t] > 0)
-            {
-                 printf("%f\t", (float)house_distribution[0][rg][t]/(float)house_distribution_count[0][t]);
-            }
-            else
-            {
-                printf("--------\t");
-            }
-        }
-        printf("\n");
-    }
-    
     ////////////////////// Work Region Distribution //////////////////////
     printf("\n\nwork region distribution (all types):\n\n");
     printf("-----------------------------------------------------------------------------------------------------------------------------\n");
@@ -3451,6 +3320,7 @@ static double estimation(float* params)
     printf("%d\t-----\t1.880000\t0.000000\t9.380000\t0.000000\t0.000000\t88.75000\t0.000000\n", 6);
     printf("%d\t-----\t0.000000\t0.000000\t0.000000\t0.000000\t0.000000\t0.000000\t100.0000\n", 7);
 
+#ifdef PRINT_OCC_DIST
     ////////////////////// Occupation Distribution per Education Level//////////////////////
     for (unsigned int edu_level = 0; edu_level < EDU_LEVELS; ++edu_level)
     {
@@ -3517,6 +3387,7 @@ static double estimation(float* params)
             printf("\n");
         }
     }
+#endif // PRINT_OCC_DIST
 
 #ifdef PRINT_EDU_LEVEL
     ////////////////////// House Region Distribution per Education Level//////////////////////
