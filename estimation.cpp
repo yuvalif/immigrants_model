@@ -1959,12 +1959,7 @@ static double estimation(float* params)
                     float prob_work_2b_part;
 
                     {
-                        const float tmp_lamda_w = lamda_work_2w + lamda20[rg];  // lamda21*SCHOOL+lamda23*AGE+lamda27*TYPE1+lamda28*TYPE2+lamda25*t+lamda26*t_sq+lamda20[rg]
-                        float tmp_exp_w = expf(tmp_lamda_w);
-                        prob_work_2w = tmp_exp_w/(1.0+tmp_exp_w);               // probability to get job offer in white if come from work
                         
-                        tmp_exp_w = expf(tmp_lamda_w + lamda22);                // lamda21*SCHOOL+lamda23*AGE+lamda27*TYPE1+lamda28*TYPE2+lamda25*t+lamda26*t_sq+lamda20[rg]+lamda22
-                        prob_ue_2w = tmp_exp_w/(1.0+tmp_exp_w);                 // probability to get job offer in white if come from unemployment
                         
                         const float tmp_lamda_b_full = lamda_work_2b_full + lamda30[rg];        // lamda33*AGE+lamda37*TYPE1+lamda38*TYPE2+lamda35*t+lamda36*t_sq+lamda30[rg]
                         float tmp_exp_b_full = expf(tmp_lamda_b_full);
@@ -1992,6 +1987,15 @@ static double estimation(float* params)
                     for (unsigned int w_rg = 0; w_rg < RG_SIZE; ++w_rg)
                     {
                         const float tmp1 = epsilon_f(draw,I,t,w_rg,WHITE,type);
+                        const float tmp_lamda_w = lamda_work_2w + lamda20[w_rg];  // lamda21*SCHOOL+lamda23*AGE+lamda27*TYPE1+lamda28*TYPE2+lamda25*t+lamda26*t_sq+lamda20[rg]
+                        float tmp_exp_w = expf(tmp_lamda_w);
+                        prob_work_2w = tmp_exp_w/(1.0+tmp_exp_w);               // probability to get job offer in white if come from work
+                        tmp_exp_w = expf(tmp_lamda_w + lamda22);                // lamda21*SCHOOL+lamda23*AGE+lamda27*TYPE1+lamda28*TYPE2+lamda25*t+lamda26*t_sq+lamda20[rg]+lamda22
+                        prob_ue_2w = tmp_exp_w/(1.0+tmp_exp_w);                 // probability to get job offer in white if come from unemployment
+                        if (t == 0)
+                        {
+                            prob_ue_2w = prob_ue_2w*psai_w;
+                        }
                         const float tmpdw = tmp1 + row_w*P_W_ERROR[dwage_w];
                         D_W_W[rg] = get_discrete_index(tmpdw);
                         wage_w_non_f[w_rg] = 6.0f*expf(rg_const_tmp_w + beta20[w_rg] + sgma[0]*(tmp1+row_w*P_W_ERROR[dwage_w]))*WAGE_REF_PARAM;
@@ -2054,7 +2058,6 @@ static double estimation(float* params)
                         ue_2w[rg][w_rg] = wage_ue_2w[w_rg] + taste_rent_husband - travel_cost(rg,w_rg) + choose_w_emax;
                         work_2w[rg][w_rg] = wage_work_2w[w_rg] + taste_rent_husband - travel_cost(rg,w_rg) + choose_w_emax; 
                         nonfired_2w[rg][w_rg] = wage_nonfired_2w[rg] + taste_rent_husband + choose_w_emax_non_f;
-                    
                     }
                 }
 
