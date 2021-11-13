@@ -3108,7 +3108,7 @@ static double estimation(float* params)
         }
         if (sum_count > 0)
         {
-            printf("%.4f\n", sum_wage/(float)sum_count);
+            printf("%.4f\n", part_wage_factor*sum_wage/(float)sum_count);
         }
         else
         {
