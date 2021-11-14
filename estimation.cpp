@@ -490,10 +490,8 @@ const unsigned short UE    = 0;
 const unsigned short BLUE  = 2;
 const unsigned short WHITE = 1;
 
-#ifdef TRACE
 const unsigned short FULL  = 0;
 const unsigned short PART  = 1;
-#endif
 
 const unsigned short MOMENTS_PERIODS = 12;
 
@@ -2437,13 +2435,13 @@ static double estimation(float* params)
                         }
                         else if (from_state == BLUE)
                         {
-                            if (blue_state == 0)
+                            if (blue_state == FULL)
                             {
-                                last_wage[draw] = ((b_wage_flag == false) ? wage_b[house_rg_arr[PERIODS-1][draw]] : wage_b_non_f[house_rg_arr[PERIODS-1][draw]])/6.0;
+                                last_wage[draw] = (b_wage_flag == false) ? wage_b[house_rg_arr[PERIODS-1][draw]] : wage_b_non_f[house_rg_arr[PERIODS-1][draw]]/6.0;
                             }
-                            else if (blue_state == 1)
+                            else if (blue_state == PART)
                             {
-                                last_wage[draw] = ((b_wage_flag == false) ? wage_b[house_rg_arr[PERIODS-1][draw]]/2.0 : wage_b_non_f[house_rg_arr[PERIODS-1][draw]])/12.0;
+                                last_wage[draw] = part_wage_factor*(((b_wage_flag == false) ? wage_b[house_rg_arr[PERIODS-1][draw]] : wage_b_non_f[house_rg_arr[PERIODS-1][draw]])/6.0);
                             }
                             else
                             {
@@ -3108,7 +3106,7 @@ static double estimation(float* params)
         }
         if (sum_count > 0)
         {
-            printf("%.4f\n", part_wage_factor*sum_wage/(float)sum_count);
+            printf("%.4f\n", sum_wage/(float)sum_count);
         }
         else
         {
