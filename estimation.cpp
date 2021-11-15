@@ -1995,7 +1995,7 @@ static double estimation(float* params)
                             prob_ue_2w = prob_ue_2w*psai_w;
                         }
                         const float tmpdw = tmp1 + row_w*P_W_ERROR[dwage_w];
-                        D_W_W[rg] = get_discrete_index(tmpdw);
+                        D_W_W[w_rg] = get_discrete_index(tmpdw);
                         wage_w_non_f[w_rg] = 6.0f*expf(rg_const_tmp_w + beta20[w_rg] + sgma[0]*(tmp1+row_w*P_W_ERROR[dwage_w]))*WAGE_REF_PARAM;
                         wage_w[w_rg] = 6.0f*expf(rg_const_tmp_w + beta20[w_rg] + sgma[0]*tmp1)*WAGE_REF_PARAM;
                         wage_ue_2w[w_rg] = draw_wage(wage_w[w_rg], prob_ue_2w);                           //equal wage if i come fron ue and got an offer and -inf if didn't
