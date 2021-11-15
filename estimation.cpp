@@ -2971,28 +2971,35 @@ static double estimation(float* params)
         sum_wage_267 = 0.0f;
         for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
         {
-            if (wage_white_rg_count[ty][rg] > 0)
+            if (rg == 1 || rg == 5 || rg == 6) // the 267 region
             {
-                if (rg == 1 || rg == 5 || rg == 6) // the 267 region
+                sum_count_267 += wage_white_rg_count[ty][rg];
+                sum_wage_267 += wage_white_rg_sum[ty][rg];
+                if (rg == 6)
                 {
-                    sum_count_267 += wage_white_rg_count[ty][rg];
-                    sum_wage_267 += wage_white_rg_sum[ty][rg];
-                    if (rg == 6)
+                    if (sum_count_267 > 0) 
                     {
                         printf("%.3f\t", sum_wage_267/(float)sum_count_267);
                     }
+                    else 
+                    {
+                        printf("--------\t");
+                    }
                 }
-                else // other regions
+            }
+            else // other regions
+            {
+                if (wage_white_rg_count[ty][rg] > 0)
                 {
                     printf("%.3f\t", wage_white_rg_sum[ty][rg]/(float)wage_white_rg_count[ty][rg]);
                 }
-                sum_count += wage_white_rg_count[ty][rg];
-                sum_wage += wage_white_rg_sum[ty][rg];
+                else
+                {
+                    printf("--------\t");
+                }
             }
-            else
-            {
-                printf("--------\t");
-            }
+            sum_count += wage_white_rg_count[ty][rg];
+            sum_wage += wage_white_rg_sum[ty][rg];
         }
         if (sum_count > 0)
         {
@@ -3300,7 +3307,7 @@ static double estimation(float* params)
     printf("----------------------------------------------------------------------------------------------------------------------------\n");
     printf(" rg |   count   |      1       |      2        |      3        |       4        |      5       |       6      |      7      |\n");
     printf("----------------|              |               |               |                |              |              |             |\n");
-    printf(" house \\ work  |              |               |               |                |              |              |             |\n");
+    printf(" house \\ work   |              |               |               |                |              |              |             |\n");
     printf("----------------------------------------------------------------------------------------------------------------------------\n");
     
     for (unsigned short h_rg = 0; h_rg < RG_SIZE; ++h_rg)
