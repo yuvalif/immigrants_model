@@ -3253,6 +3253,57 @@ static double estimation(float* params)
         }
     }
 
+#ifdef RANDOM_SELECTION
+    ////////////////////// House Region Distribution //////////////////////
+    printf("\n\nhousing region distribution (all types):\n\n");
+    printf("-----------------------------------------------------------------------------------------------------------------------------\n");
+    printf(" T |   count    |      1       |      2        |      3        |       4        |      5       |       6      |      7      |\n");
+    printf("-----------------------------------------------------------------------------------------------------------------------------\n");
+
+    for (unsigned short t = 0; t < max_T; ++t)
+    {
+        printf("%hu\t%lu\t", t, house_notype_distribution_count[t]);
+        for (unsigned rg = 0; rg < RG_SIZE; ++rg)
+        {
+            printf("%f\t", (float)house_notype_distribution[rg][t]/(float)house_notype_distribution_count[t]);
+        }
+        printf("\n");
+    }
+
+    printf("\n------------------------------------------------------------------------------------------------------------------------------------\n");
+    memset(house_distribution_count, '\0', sizeof(house_distribution_count));
+    memset(house_distribution, '\0', sizeof(house_distribution));
+    for (unsigned short I = 0; I < OBSR; ++I)
+    {
+        //unsigned short last_t = PERIODS_arr[I];
+        for (unsigned short t = 0; t < MOMENTS_PERIODS ; ++t)
+        {
+            if (live(I,t) > -1)
+            {
+                ++house_distribution_count[0][t];
+                ++house_distribution[0][live(I,t)][t];
+            }
+        }
+    }
+
+    for (unsigned short t = 0; t < MOMENTS_PERIODS ; ++t)
+    {
+        printf("%hu\t%lu\t", t, house_distribution_count[0][t]);
+        for (unsigned rg = 0; rg < RG_SIZE; ++rg)
+        {
+            if (house_distribution_count[0][t] > 0)
+            {
+                 printf("%f\t", (float)house_distribution[0][rg][t]/(float)house_distribution_count[0][t]);
+            }
+            else
+            {
+                printf("--------\t");
+            }
+        }
+        printf("\n");
+    }
+#endif // RANDOM_SELECTION
+
     ////////////////////// Work Region Distribution //////////////////////
     printf("\n\nwork region distribution (all types):\n\n");
     printf("-----------------------------------------------------------------------------------------------------------------------------\n");
