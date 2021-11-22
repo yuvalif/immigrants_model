@@ -1717,15 +1717,8 @@ static double estimation(float* params)
                     float prob_ue_2b;
 #ifndef WAGE_SELECTION
                     {
-                        float tmp_lamda = lamda_work_2w + lamda20[rg];  // lamda21*SCHOOL+lamda23*AGE+lamda27*TYPE2+lamda28*TYPE3+lamda25*t+lamda26*t_sq+lamda20[rg]
+                        const float tmp_lamda = lamda_work_2b + lamda30[rg];        // lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda35*t+lamda36*t_sq+lamda30[rg]
                         float tmp_exp = expf(tmp_lamda);
-                        prob_work_2w = tmp_exp/(1.0f+tmp_exp);          // probability to get job offer in white if come from work
-                        
-                        tmp_exp = expf(tmp_lamda + lamda22);            // lamda21*SCHOOL+lamda23*AGE+lamda27*TYPE2+lamda28*TYPE3+lamda25*t+lamda26*t_sq+lamda20[rg]+lamda22
-                        prob_ue_2w = tmp_exp/(1.0f+tmp_exp);            // probability to get job offer in white if come from unemployment
-                        
-                        tmp_lamda = lamda_work_2b + lamda30[rg];        // lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda35*t+lamda36*t_sq+lamda30[rg]
-                        tmp_exp = expf(tmp_lamda);
                         prob_work_2b = tmp_exp/(1.0f+tmp_exp);          // probability to get job offer in blue if come from work
                         
                         tmp_exp = expf(tmp_lamda + lamda32);            // lamda33*AGE+lamda37*TYPE2+lamda38*TYPE3+lamda35*t+lamda36*t_sq+lamda30[rg]+lamda32
@@ -1733,7 +1726,6 @@ static double estimation(float* params)
 
                         if (t == 0)
                         {
-                            prob_ue_2w = prob_ue_2w*psai_w;
                             prob_ue_2b = prob_ue_2b*psai_b;
                         }
                     }
@@ -1742,7 +1734,17 @@ static double estimation(float* params)
                     for (unsigned int w_rg = 0; w_rg < RG_SIZE; ++w_rg)
                     {
                         // tmp1_w = beta21*SCHOOL+beta22*EXP_U+beta23*EXP_U_SQ+beta27*TYPE2+beta28*TYPE3+beta26*age40+beta24*k+beta25*k_sq+beta20[rg]
-                        float tmp1 = epsilon_f(draw,I,t,w_rg,WHITE);
+                        const float tmp_lamda = lamda_work_2w + lamda20[w_rg];  // lamda21*SCHOOL+lamda23*AGE+lamda27*TYPE2+lamda28*TYPE3+lamda25*t+lamda26*t_sq+lamda20[rg]
+                        float tmp_exp = expf(tmp_lamda);
+                        prob_work_2w = tmp_exp/(1.0f+tmp_exp);          // probability to get job offer in white if come from work
+                        
+                        tmp_exp = expf(tmp_lamda + lamda22);            // lamda21*SCHOOL+lamda23*AGE+lamda27*TYPE2+lamda28*TYPE3+lamda25*t+lamda26*t_sq+lamda20[rg]+lamda22
+                        prob_ue_2w = tmp_exp/(1.0f+tmp_exp);            // probability to get job offer in white if come from unemployment
+                        if (t == 0)
+                        {
+                            prob_ue_2w = prob_ue_2w*psai_w;
+                        }
+                        const float tmp1 = epsilon_f(draw,I,t,w_rg,WHITE);
                         float tmpdw = tmp1 + row_w*P_W_ERROR[dwage_w];
                         D_W_W[w_rg] = get_discrete_index(tmpdw);
                         wage_w_non_f[w_rg] = 6.0f*expf(rg_const_tmp_w + beta20[w_rg] + sgma[0]*(tmp1+row_w*P_W_ERROR[dwage_w]))*WAGE_REF_PARAM;
@@ -2870,90 +2872,7 @@ static double estimation(float* params)
         }
     }
 
-    ////////////////////// Last Rent //////////////////////
-    printf("\n\naverage rent in last period:\n\n");
-    printf("------------------------------------------------------------------------------------------------------------------------------------\n");
-    printf(" ty |      1       |       2       |       3       |       4       |       5       |       6       |       7       |    average    |\n");
-    printf("------------------------------------------------------------------------------------------------------------------------------------\n");
-    for (unsigned short ty = 0; ty < TYPE_SIZE; ++ty)
-    {
-        printf("%hu\t", ty);
-        unsigned long sum_count = 0;
-        float sum_rent = 0.0;
-        for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
-        {
-            if (rent_rg_count[ty][rg] > 0)
-            {
-                printf("%.3f\t", rent_rg_sum[ty][rg]/(float)rent_rg_count[ty][rg]);
-                sum_count += rent_rg_count[ty][rg];
-                sum_rent += rent_rg_sum[ty][rg];
-            }
-            else
-            {
-                printf("---------\t");
-            }
-        }
-        if (sum_count > 0)
-        {
-            printf("%.3f\n", sum_rent/(float)sum_count);
-        }
-        else
-        {
-            printf("--------\n");
-        }
-    }
-
-    // average across types per region
-    printf("------------------------------------------------------------------------------------------------------------------------------------\n");
-    printf("avg\t");
-    for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
-    {
-        printf("%.3f\t", rent_rg_notype_sum[rg]/(float)rent_rg_notype_count[rg]);
-    }
-
-    // average across all regions
-    printf("%.3f\t", rent_notype_sum/(float)rent_notype_count);
-
-    // real values
-    printf("\n------------------------------------------------------------------------------------------------------------------------------------\n");
-    memset(rent_rg_sum, '\0', sizeof(rent_rg_sum));
-    memset(rent_rg_count, '\0', sizeof(rent_rg_count));
-    for (unsigned short I = 0; I < OBSR; ++I)
-    {
-        short rg = live(I, PERIODS_arr[I]-1);
-        if (rg > -1 && D_MORT_arr[I] == 0 && RENT_MORT_arr[I] > 0)
-        {
-            rent_rg_sum[0][rg] += (float)RENT_MORT_arr[I];
-            ++rent_rg_count[0][rg];
-        }
-    }
-    {
-        printf("real\t");
-        unsigned long sum_count = 0;
-        float sum_rent = 0.0;
-        for (unsigned short rg = 0; rg  < RG_SIZE; ++rg )
-        {
-            if (rent_rg_count[0][rg] > 0)
-            {
-                printf("%.4f\t", rent_rg_sum[0][rg]/(float)rent_rg_count[0][rg]);
-                sum_count += rent_rg_count[0][rg];
-                sum_rent += rent_rg_sum[0][rg];
-            }
-            else
-            {
-                printf("--------\t");
-            }
-        }
-        if (sum_count > 0)
-        {
-            printf("%.4f\n", sum_rent/(float)sum_count);
-        }
-        else
-        {
-            printf("--------\n");
-        }
-    }
-
+#ifdef RANDOM_SELECTION
     ////////////////////// House Region Distribution //////////////////////
     printf("\n\nhousing region distribution (all types):\n\n");
     printf("-----------------------------------------------------------------------------------------------------------------------------\n");
@@ -3002,7 +2921,8 @@ static double estimation(float* params)
         }
         printf("\n");
     }
-    
+#endif   
+
     ////////////////////// Work Region Distribution //////////////////////
     printf("\n\nwork region distribution (all types):\n\n");
     printf("-----------------------------------------------------------------------------------------------------------------------------\n");
