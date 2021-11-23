@@ -70,7 +70,7 @@ const unsigned short T          = 20;               // time
 #ifdef WIFE_MODE
 const unsigned int OBSR         = 529;              // individual 
 #else // regular mode
-const unsigned int OBSR         = 697;              // individual 
+const unsigned int OBSR         = 614;              // individual 
 #endif
 const unsigned int OBS          = OBSR*TYPE_SIZE;   // individual multiplay by number of types
 const unsigned int DRAWS        = 30;               // draws for emax
