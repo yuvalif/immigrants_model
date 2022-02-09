@@ -2364,19 +2364,23 @@ static double estimation(float* params)
                 if (IND_FILTER==1)
 #endif
                 {
+                    const int state = (max_index >= 0 && max_index <=6) ? 0 :
+                        (max_index <= 13) ? 2 :
+                        (max_index <= 20) ? 3 : 1;
+
                     ++house_distribution[type][from_h_rg][t];
                     ++house_distribution_count[type][t];
                     ++house_notype_distribution[from_h_rg][t];
                     ++house_notype_distribution_count[t];
-                    ++occ_distribution[type][from_state+blue_state][t];
+                    ++occ_distribution[type][state][t];
                     ++occ_distribution_count[type][t];
-                    ++occ_notype_distribution[from_state+blue_state][t];
+                    ++occ_notype_distribution[state][t];
                     ++occ_notype_distribution_count[t];
                     if (HUSBAND_EDU_LEVEL != -1)
                     {
                         ++house_notype_edu_distribution[HUSBAND_EDU_LEVEL][from_h_rg][t];
                         ++house_notype_edu_distribution_count[HUSBAND_EDU_LEVEL][t]; 
-                        ++occ_notype_edu_distribution[HUSBAND_EDU_LEVEL][from_state+blue_state][t];
+                        ++occ_notype_edu_distribution[HUSBAND_EDU_LEVEL][state][t];
                         ++occ_notype_edu_distribution_count[HUSBAND_EDU_LEVEL][t];
                     }
                 }
@@ -2916,7 +2920,7 @@ static double estimation(float* params)
         printf("%hu\t%lu\t", t, occ_notype_distribution_count[t]);
         for (unsigned short st = 0; st < ALL_STATE_SIZE; ++st)
         {
-            printf("%f\t", (float)occ_notype_distribution[st][t]/(float)occ_notype_distribution_count[t]);
+            printf("%f(%lu)\t", (float)occ_notype_distribution[st][t]/(float)occ_notype_distribution_count[t], occ_notype_distribution[st][t]);
         }
 
         printf("\n");
