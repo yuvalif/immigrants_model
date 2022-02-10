@@ -1904,7 +1904,8 @@ static double estimation(float* params)
                 {
 #ifdef FULL_TRACE_INDEX
                     printf("%d ", 999);
-#elif FULL_TRACE_WAGE
+#endif
+#ifdef FULL_TRACE_WAGE
                     printf("%.3f ",  0.0);
 #endif
                     continue;
@@ -2219,7 +2220,8 @@ static double estimation(float* params)
                 }
 #ifdef FULL_TRACE_INDEX
                 printf("%d ", max_index);
-#elif FULL_TRACE_WAGE
+#endif
+#ifdef FULL_TRACE_WAGE
                 {
                     float current_wage;
                     if (tmp_work_rg == 1)
@@ -2254,7 +2256,8 @@ static double estimation(float* params)
 
                     printf("%.3f ",  current_wage);
                 }
-#elif FULL_TRACE_RENT
+#endif
+#ifdef FULL_TRACE_RENT
                 printf("%.3f ", rent[tmp_house_rg][type]/6.0f);   
 #endif
 
@@ -2359,15 +2362,14 @@ static double estimation(float* params)
 #ifndef SIMULATION
                 max_index_arr[t][draw] = max_index;
 #endif
+                const int state = (max_index >= 0 && max_index <=6) ? 0 :
+                    (max_index <= 13) ? 2 :
+                    (max_index <= 20) ? 3 : 1;
 #ifdef TRACE
 #ifdef SIMULATION
                 if (IND_FILTER==1)
 #endif
                 {
-                    const int state = (max_index >= 0 && max_index <=6) ? 0 :
-                        (max_index <= 13) ? 2 :
-                        (max_index <= 20) ? 3 : 1;
-
                     ++house_distribution[type][from_h_rg][t];
                     ++house_distribution_count[type][t];
                     ++house_notype_distribution[from_h_rg][t];
@@ -2385,6 +2387,7 @@ static double estimation(float* params)
                     }
                 }
 #endif
+
                 // calculate last rent and wage
                 if (t == PERIODS-1)
                 {
@@ -2418,7 +2421,7 @@ static double estimation(float* params)
                     if (I!=84 && I!=214 && I!=399 && I!=620 && I!=640)
                     {
                         // all individuals that are not special cases have last_wage calculated here
-                        if (from_state == WHITE)
+                        if (state == WHITE)
                         {
                             last_wage[draw] = ((w_wage_flag == false) ? wage_w[work_rg_arr[PERIODS-1][draw]] : wage_w_non_f[work_rg_arr[PERIODS-1][draw]])/6.0f;
 #ifdef TRACE
@@ -2437,7 +2440,7 @@ static double estimation(float* params)
                             }
 #endif
                         }
-                        else if (from_state == BLUE)
+                        else if (state == BLUE+FULL || state == BLUE+PART)
                         {
                             if (blue_state == FULL)
                             {
@@ -2468,7 +2471,7 @@ static double estimation(float* params)
                             }
 #endif
                         }
-                        else if (from_state == UE)
+                        else if (state == UE)
                         {
                             // unemployment
                             last_wage[draw] = 0.0;
@@ -2488,11 +2491,11 @@ static double estimation(float* params)
                 else if ((t == 7 && I == 84) || (t == 6 && I == 214) || (t == 1 && I == 399) || (t == 3 && (I == 640 || I == 620)))
                 {
                     // not the last period, handle special cases
-                    if (from_state == WHITE)
+                    if (state == WHITE)
                     {
                         last_wage[draw] = wage_w[from_w_rg]/6.0f;
                     }
-                    else if (from_state == BLUE)
+                    else if (state == BLUE)
                     {
                         // TODO part/full time in last wage
                         last_wage[draw] = wage_b[from_h_rg]/6.0f;
