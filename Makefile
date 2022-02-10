@@ -88,7 +88,7 @@ estimation_test_full: estimation.cpp
 
 estimation_test_fullwage: estimation.cpp
 	@echo Building $@...;
-	@$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_WAGE -o $@ $<;
+	@$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_WAGE -DFULL_TRACE_INDEX -o $@ $<;
 
 estimation_test_full_random: estimation.cpp
 	@echo Building $@...;
@@ -96,7 +96,7 @@ estimation_test_full_random: estimation.cpp
 
 estimation_test_fullwage_random: estimation.cpp
 	@echo Building $@...;
-	$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_WAGE -DRANDOM_SELECTION -o $@ $<;
+	$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_WAGE -DRANDOM_SELECTION -DFULL_TRACE_INDEX -o $@ $<;
 
 estimation_test_random: estimation.cpp
 	@echo Building $@...;
