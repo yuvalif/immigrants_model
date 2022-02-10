@@ -8,7 +8,7 @@ ifeq ($(CC),icpc)
 	CFLAGS=$(CWARNING_FLAGS) -opt-prefetch -fno-alias -fno-exceptions -fp-model fast=2 -fast-transcendentals -O3 -static
 else
 	CWARNING_FLAGS=-Wall
-	CFLAGS=$(CWARNING_FLAGS) -O3 -lm -lstdc++
+	CFLAGS=$(CWARNING_FLAGS) -O0 -lm -lstdc++
 	CDEBUG_FLAGS=$(CWARNING_FLAGS) -g -O0 -lm -lstdc++
 endif
 
@@ -87,7 +87,7 @@ estimation_test_full: estimation.cpp
 
 estimation_test_fullwage: estimation.cpp
 	@echo Building $@...;
-	$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_WAGE -o $@ $<;
+	$(CC) $(CFLAGS) -DTRACE -DINFO -DFULL_TRACE -DFULL_TRACE_INDEX -DFULL_TRACE_WAGE -o $@ $<;
 
 estimation_test_fullrent: estimation.cpp
 	@echo Building $@...;
