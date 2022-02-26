@@ -119,6 +119,9 @@ inline float draw_blue_wage(float wage, float prob_full, float prob_part, bool& 
         full = true;
         return wage;
     }
+    else if (part_wage_factor == 0.0) {
+    	return -INFINITY;
+    }
     else if (p < prob_full + prob_part)
     {
         full = false;
@@ -1577,7 +1580,7 @@ static double estimation(float* params)
                             
                             wage_nonfired_2w[rg][dwage] = draw_wage(wage_w[dwage], prob_nonfired_w[type]);            //equal wage if ind wasn't fired  and -inf if was fired  
                             const float wage_nonfired_2b_full = draw_wage(wage_b[dwage], prob_nonfired_b[type]);      //equal wage if ind wasn't fired  and -inf if was fired
-                            const float wage_nonfired_2b_part = draw_wage(wage_b[dwage]/2.0, prob_nonfired_b[type]) + alfa3/2.0; //equal wage if ind wasn't fired  and -inf if was fired
+                            const float wage_nonfired_2b_part = draw_wage(wage_b[dwage]*part_wage_factor, prob_nonfired_b[type]) + alfa3/2.0; //equal wage if ind wasn't fired  and -inf if was fired
                             if (t == T)
                             {
                                 choose_ue_emax = 0.0f;
@@ -2020,7 +2023,7 @@ static double estimation(float* params)
                     
                     wage_nonfired_2w[rg] = draw_wage(wage_w_non_f[rg], prob_nonfired_w[type]);          //equal wage if ind wasn't fired  and -inf if was fired
                     const float wage_nonfired_2b_full = draw_wage(wage_b_non_f[rg], prob_nonfired_b[type]);  //equal wage if ind wasn't fired  and -inf if was fired
-                    const float wage_nonfired_2b_part = draw_wage(wage_b_non_f[rg]/2.0, prob_nonfired_b[type]) + alfa3/2.0;  //equal wage if ind wasn't fired  and -inf if was fired
+                    const float wage_nonfired_2b_part = draw_wage(wage_b_non_f[rg]*part_wage_factor, prob_nonfired_b[type]) + alfa3/2.0;  //equal wage if ind wasn't fired  and -inf if was fired
                     float wage_ue_2b = draw_blue_wage(wage_b[rg], prob_ue_2b_full, prob_ue_2b_part, ue_2b_full[rg], part_wage_factor);      //equal wage if i come fron ue and got an offer and -inf if didn't
                     wage_ue_2b += (ue_2b_full[rg] == false ? alfa3/2.0 : 0.0);                      // add part time alfa3 if needed
                     float wage_work_2b = draw_blue_wage(wage_b[rg], prob_work_2b_full, prob_work_2b_part, work_2b_full[rg], part_wage_factor);  //equal wage if ind come from and got an offer and -inf if didn't
