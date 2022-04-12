@@ -8,7 +8,7 @@ ifeq ($(CC),icpc)
 	CFLAGS=$(CWARNING_FLAGS) -opt-prefetch -fno-alias -fno-exceptions -fp-model fast=2 -fast-transcendentals -O3 -static
 else
 	CWARNING_FLAGS=-Wall
-	CFLAGS=$(CWARNING_FLAGS) -O0 -lm -lstdc++
+	CFLAGS=$(CWARNING_FLAGS) -g -O0 -lm -lstdc++
 	CDEBUG_FLAGS=$(CWARNING_FLAGS) -g -O0 -lm -lstdc++
 endif
 
