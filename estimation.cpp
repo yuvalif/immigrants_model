@@ -119,11 +119,12 @@ inline float draw_blue_wage(float wage, float prob_full, float prob_part, bool& 
         full = true;
         return wage;
     }
-    else if (part_wage_factor == 0.0) {
-    	return -INFINITY;
-    }
     else if (p < prob_full + prob_part)
     {
+    	if (part_wage_factor == 0.0) {
+          full = true;
+    	  return wage;
+    	}
         full = false;
         return wage*part_wage_factor;
     }
