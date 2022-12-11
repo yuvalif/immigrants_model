@@ -17,26 +17,30 @@ sed -i "$line_number,$ d" "$filename"
 printf "\n\nOccupation Distribution Count\n"
 printf "Time\tTotal\tUE\tWhite\tFull\n"
 
-for i in {5..24..2}
+t=0
+for i in {5..30..2}
 do
   total=$(awk "BEGIN{count=0}{if (\$$i >= 0) count=count+1}END{print count}" "$filename")
   ue=$(awk "BEGIN{ue=0}{if (\$$i >=0 && \$$i <= 6) ue=ue+1}END{print ue}" "$filename")
   full=$(awk "BEGIN{full=0}{if (\$$i > 6 && \$$i <= 13) full=full+1}END{print full}" "$filename")
   white=$(awk "BEGIN{white=0}{if (\$$i > 13) white=white+1}END{print white}" "$filename")
 
-  printf "%d\t%d\t%d\t%d\t%d\n" $((i-5)) "$total" "$ue" "$white" "$full"
+  printf "%d\t%d\t%d\t%d\t%d\n" "$t" "$total" "$ue" "$white" "$full"
+  t=$((t+1))
 done
 printf "\n\nOccupation Distribution Percent\n"
 printf "Time\tTotal\tUE\tWhite\tFull\n"
 
-for i in {5..24..2}
+t=0
+for i in {5..30..2}
 do
   total=$(awk "BEGIN{count=0}{if (\$$i >= 0) count=count+1}END{print count}" "$filename")
   ue=$(awk "BEGIN{count=0;ue=0}{if (\$$i >= 0) count=count+1; if (\$$i >=0 && \$$i <= 6) ue=ue+1}END{printf(\"%.4f\n\", ue/count)}" "$filename")
   full=$(awk "BEGIN{count=0;full=0}{if (\$$i >= 0) count=count+1; if (\$$i > 6 && \$$i <= 13) full=full+1}END{printf(\"%.4f\n\", full/count)}" "$filename")
   white=$(awk "BEGIN{count=0;white=0}{if (\$$i >= 0) count=count+1; if (\$$i > 13) white=white+1}END{printf(\"%.4f\n\", white/count)}" "$filename")
 
-  printf "%d\t%d\t%.4f\t%.4f\t%.4f\n" $((i-5)) "$total" "$ue" "$white" "$full"
+  printf "%d\t%d\t%.4f\t%.4f\t%.4f\n" "$t" "$total" "$ue" "$white" "$full"
+  t=$((t+1))
 done
 
 printf "\n\nWhite Wage in Last Period\n"
